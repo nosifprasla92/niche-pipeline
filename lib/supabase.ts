@@ -73,3 +73,29 @@ export type FeedbackPattern = {
   confidence: number;
   source_idea_id: number | null;
 };
+
+export type RoutineName = "generator" | "researcher" | "planner";
+
+export type RoutineRunStatus =
+  | "triggered"
+  | "accepted"
+  | "fire_failed"
+  | "completed"
+  | "error"
+  | "timed_out"
+  | "cancelled";
+
+export type TriggeredBy = "cron" | "ui" | "callback";
+
+export type RoutineRun = {
+  id: number;
+  routine_name: RoutineName;
+  started_at: string;
+  finished_at: string | null;
+  status: RoutineRunStatus;
+  triggered_by: TriggeredBy;
+  idea_context_id: number | null;
+  error_message: string | null;
+  fire_response_body: string | null;
+  summary: string | null;
+};
