@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 const COOKIE_NAME = "np_auth";
 
 export function proxy(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`) {
+    return NextResponse.next();
+  }
+
   const password = process.env.DASHBOARD_PASSWORD;
   if (!password) return NextResponse.next();
 

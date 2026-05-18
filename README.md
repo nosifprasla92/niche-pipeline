@@ -16,13 +16,14 @@ Open `http://localhost:3000?password=<DASHBOARD_PASSWORD>` (or remove `DASHBOARD
 ## Required setup before running
 
 1. **Supabase project + schema** — run the SQL from the build kit (`ideas` + `feedback_patterns` tables, plus the `touch_updated_at` trigger).
-2. **Three Claude Cloud Routines** at <https://claude.ai/code/routines>:
-   - **Idea Generator** — cron `0 4 * * *` (= 8 AM Indian/Mahe daily).
-   - **Deep Researcher** — no cron; fired on demand.
-   - **Plan Builder** — no cron; fired on demand.
+2. **Three Claude Cloud Routines** at <https://claude.ai/code/routines>. All three are API-trigger type (no cron) — scheduling is handled by Vercel Cron, not by Anthropic, so the dashboard can also fire them on demand:
+   - **Idea Generator** — fired daily at 04:00 UTC (= 8 AM Mahe) by Vercel Cron, and on demand by the "Run now" button.
+   - **Deep Researcher** — fired on demand when you click "Pursue" on an idea.
+   - **Plan Builder** — fired on demand when you click "Build plan" on a researched idea.
 3. **Mint an API trigger on each routine.** Open the routine page → "Add API trigger" → copy the `sk-ant-oat01-…` token (shown once) and the routine ID (`trig_…` from the URL) into `.env.local` as `{NAME}_ROUTINE_ID` + `{NAME}_TRIGGER_TOKEN`. The dashboard fires routines via `POST https://api.anthropic.com/v1/claude_code/routines/{id}/fire` with that token — see [`lib/fire-routine.ts`](lib/fire-routine.ts).
-4. The three triggers in the app:
-   - `/api/run-generator` → fires the generator routine ("Run now" button).
+4. **Set `CRON_SECRET`** in both `.env.local` (for local awareness) and the Vercel project's env vars. Vercel Cron sends this as `Authorization: Bearer ${CRON_SECRET}` when hitting `/api/run-generator`; the password gate in [`proxy.ts`](proxy.ts) recognizes the header and lets the request through.
+5. The three triggers in the app:
+   - `/api/run-generator` → fires the generator routine. GET (from Vercel Cron, requires `CRON_SECRET`) and POST (from the "Run now" button, gated by the dashboard password) both work.
    - `/api/trigger-research` → sets the idea's status to `pursuing`, then fires the researcher. The researcher picks up the most recently updated `pursuing` row.
    - `/api/trigger-plan` → sets the idea's status to `planning`, then fires the planner. Same status-based contract.
 
