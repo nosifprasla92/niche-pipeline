@@ -8,6 +8,7 @@ import { TabResearching } from "./components/tab-researching";
 import { TabPlans } from "./components/tab-plans";
 import { TabArchive } from "./components/tab-archive";
 import { TabInsights } from "./components/tab-insights";
+import { RunsPanel } from "./components/runs-panel";
 
 const TABS = [
   { id: "inbox", label: "Inbox" },
@@ -56,13 +57,16 @@ export default function Home() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <button
-            onClick={runNow}
-            disabled={running}
-            className="px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
-          >
-            {running ? "Running…" : "Run now"}
-          </button>
+          <div className="flex items-center gap-3">
+            <RunsPanel />
+            <button
+              onClick={runNow}
+              disabled={running}
+              className="px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+            >
+              {running ? "Running…" : "Run now"}
+            </button>
+          </div>
           {error && <span className="text-xs text-red-600">{error}</span>}
         </div>
       </header>
