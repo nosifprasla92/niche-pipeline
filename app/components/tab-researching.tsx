@@ -5,6 +5,7 @@ import { fetcher, formatDate } from "@/lib/fetcher";
 import { Idea } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
+import { ConflictToast, type Conflict } from "./conflict-toast";
 
 export function TabResearching() {
   const { data, mutate } = useSWR<{ ideas: Idea[] }>(
@@ -30,6 +31,9 @@ export function TabResearching() {
 function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [conflict, setConflict] = useState<Conflict | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   if (idea.status === "pursuing") {
     return (
@@ -48,12 +52,38 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
   }
 
   async function approve() {
-    await fetch("/api/trigger-plan", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ idea_id: idea.id }),
-    });
-    onChange();
+    setBusy(true);
+    try {
+      const r = await fetch("/api/trigger-plan", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idea_id: idea.id }),
+      });
+      if (r.status === 409) {
+        const body = await r.json();
+        setConflict(body.conflict);
+        return;
+      }
+      onChange();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancelAndPlan() {
+    if (!conflict?.run_id) return;
+    setCancelling(true);
+    try {
+      await fetch("/api/cancel-run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ run_id: conflict.run_id }),
+      });
+      setConflict(null);
+      await approve();
+    } finally {
+      setCancelling(false);
+    }
   }
 
   async function reject() {
@@ -68,6 +98,9 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
     });
     onChange();
   }
+
+  const conflictTitle = conflict?.idea_title ?? "another idea";
+  const message = `"${conflictTitle}" is already being planned. Cancel that to plan "${idea.title}" instead?`;
 
   return (
     <Card>
@@ -97,12 +130,14 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
         <div className="flex gap-2 mt-4">
           <button
             onClick={approve}
-            className="px-3 py-1.5 text-sm rounded-md bg-green-600 text-white hover:bg-green-700"
+            disabled={busy}
+            className="px-3 py-1.5 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
           >
             Approve plan
           </button>
           <button
             onClick={() => setRejecting(true)}
+            disabled={busy}
             className="px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             Reject
@@ -127,6 +162,17 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
             Cancel
           </button>
         </div>
+      )}
+
+      {conflict && (
+        <ConflictToast
+          message={message}
+          cancelLabel="Cancel and plan"
+          canCancel={conflict.run_id != null}
+          cancelling={cancelling}
+          onCancel={cancelAndPlan}
+          onDismiss={() => setConflict(null)}
+        />
       )}
     </Card>
   );

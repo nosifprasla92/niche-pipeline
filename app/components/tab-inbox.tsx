@@ -5,6 +5,7 @@ import { fetcher, formatDate } from "@/lib/fetcher";
 import { Idea } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
+import { ConflictToast, type Conflict } from "./conflict-toast";
 
 export function TabInbox() {
   const { data, mutate } = useSWR<{ ideas: Idea[] }>("/api/ideas?status=new", fetcher, {
@@ -33,15 +34,42 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
   const [passing, setPassing] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [conflict, setConflict] = useState<Conflict | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   async function pursue() {
     setBusy(true);
-    await fetch("/api/trigger-research", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ idea_id: idea.id }),
-    });
-    onChange();
+    try {
+      const r = await fetch("/api/trigger-research", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idea_id: idea.id }),
+      });
+      if (r.status === 409) {
+        const body = await r.json();
+        setConflict(body.conflict);
+        return;
+      }
+      onChange();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancelAndPursue() {
+    if (!conflict?.run_id) return;
+    setCancelling(true);
+    try {
+      await fetch("/api/cancel-run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ run_id: conflict.run_id }),
+      });
+      setConflict(null);
+      await pursue();
+    } finally {
+      setCancelling(false);
+    }
   }
 
   async function pass() {
@@ -57,6 +85,9 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
     });
     onChange();
   }
+
+  const conflictTitle = conflict?.idea_title ?? "another idea";
+  const message = `"${conflictTitle}" is already in research. Cancel that to pursue "${idea.title}" instead?`;
 
   return (
     <Card>
@@ -127,6 +158,17 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
             Cancel
           </button>
         </div>
+      )}
+
+      {conflict && (
+        <ConflictToast
+          message={message}
+          cancelLabel="Cancel and pursue"
+          canCancel={conflict.run_id != null}
+          cancelling={cancelling}
+          onCancel={cancelAndPursue}
+          onDismiss={() => setConflict(null)}
+        />
       )}
     </Card>
   );

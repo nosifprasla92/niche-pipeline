@@ -9,6 +9,7 @@ import { TabPlans } from "./components/tab-plans";
 import { TabArchive } from "./components/tab-archive";
 import { TabInsights } from "./components/tab-insights";
 import { RunsPanel } from "./components/runs-panel";
+import { ConflictToast, type Conflict } from "./components/conflict-toast";
 
 const TABS = [
   { id: "inbox", label: "Inbox" },
@@ -24,6 +25,8 @@ export default function Home() {
   const [tab, setTab] = useState<TabId>("inbox");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<Conflict | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const { data } = useSWR<{ ideas: Idea[] }>("/api/ideas?status=new", fetcher, {
     refreshInterval: 30000,
   });
@@ -35,12 +38,33 @@ export default function Home() {
     setError(null);
     try {
       const r = await fetch("/api/run-generator", { method: "POST" });
+      if (r.status === 409) {
+        const body = await r.json();
+        setConflict(body.conflict);
+        return;
+      }
       if (!r.ok) {
         const t = await r.json();
         setError(t.error || "Failed");
       }
     } finally {
       setRunning(false);
+    }
+  }
+
+  async function cancelAndRetry() {
+    if (!conflict?.run_id) return;
+    setCancelling(true);
+    try {
+      await fetch("/api/cancel-run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ run_id: conflict.run_id }),
+      });
+      setConflict(null);
+      await runNow();
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -94,6 +118,17 @@ export default function Home() {
         {tab === "archive" && <TabArchive />}
         {tab === "insights" && <TabInsights />}
       </main>
+
+      {conflict && (
+        <ConflictToast
+          message="The generator is already running. Cancel that run to start a new one?"
+          cancelLabel="Cancel running and re-fire"
+          canCancel={conflict.run_id != null}
+          cancelling={cancelling}
+          onCancel={cancelAndRetry}
+          onDismiss={() => setConflict(null)}
+        />
+      )}
     </div>
   );
 }
