@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, type RoutineRunStatus } from "@/lib/supabase";
+import { logEvent } from "@/lib/log";
 
 type Body = {
   status: "completed" | "error";
@@ -58,9 +59,10 @@ export async function POST(
   }
 
   if (TERMINAL_STATUSES.includes(existing.status)) {
-    console.log(
-      `[routine-runs] complete(${id}) idempotent: already ${existing.status}`,
-    );
+    logEvent("info", "callback.idempotent", {
+      run_id: id,
+      current_status: existing.status,
+    });
     return NextResponse.json({
       ok: true,
       transitioned: false,
@@ -81,10 +83,13 @@ export async function POST(
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  console.log(
-    `[routine-runs] complete(${id}) ${existing.status} → ${body.status}` +
-      (body.idea_ids?.length ? ` ideas=${body.idea_ids.join(",")}` : ""),
-  );
+  logEvent("info", "callback.received", {
+    run_id: id,
+    from: existing.status,
+    to: body.status,
+    summary_len: body.summary?.length ?? 0,
+    idea_count: body.idea_ids?.length ?? 0,
+  });
 
   return NextResponse.json({
     ok: true,

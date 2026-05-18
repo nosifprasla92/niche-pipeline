@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, type RoutineName } from "@/lib/supabase";
 import { markCancelled } from "@/lib/routine-runs";
+import { logEvent } from "@/lib/log";
 
 const IN_FLIGHT_STATUSES = ["triggered", "accepted"] as const;
 
@@ -69,9 +70,11 @@ export async function POST(req: NextRequest) {
   }
 
   await markCancelled(run.id);
-  console.log(
-    `[cancel-run] run_id=${run.id} routine=${run.routine_name} idea=${run.idea_context_id ?? "—"}`,
-  );
+  logEvent("info", "cancel-run.success", {
+    run_id: run.id,
+    routine: run.routine_name,
+    idea_context_id: run.idea_context_id,
+  });
 
   return NextResponse.json({ ok: true });
 }

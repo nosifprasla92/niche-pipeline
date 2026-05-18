@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { logEvent } from "@/lib/log";
 
 // Promote routine_runs rows that have been 'accepted' for longer than this
 // many minutes to 'timed_out'. The threshold is intentionally generous so
@@ -35,16 +36,22 @@ async function handler(req: NextRequest) {
     .select("id, routine_name, started_at");
 
   if (error) {
-    console.error("[sweep-runs] failed:", error.message);
+    logEvent("error", "sweep.failed", { message: error.message });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   const swept = data ?? [];
   if (swept.length > 0) {
-    console.warn(
-      `[sweep-runs] timed_out ${swept.length} stuck row(s):`,
-      swept.map((r) => `${r.routine_name}#${r.id}`).join(", "),
-    );
+    logEvent("warn", "sweep.timed_out", {
+      count: swept.length,
+      runs: swept.map((r) => ({
+        run_id: r.id,
+        routine: r.routine_name,
+        started_at: r.started_at,
+      })),
+    });
+  } else {
+    logEvent("info", "sweep.clean", { source: isCron ? "cron" : "ui" });
   }
 
   return NextResponse.json({

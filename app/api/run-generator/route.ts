@@ -6,6 +6,7 @@ import {
   markAccepted,
   markFireFailed,
 } from "@/lib/routine-runs";
+import { logEvent } from "@/lib/log";
 
 async function handler(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -17,16 +18,23 @@ async function handler(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const triggeredBy = isCron ? "cron" : "ui";
+  logEvent("info", "trigger.start", {
+    routine: "generator",
+    triggered_by: triggeredBy,
+  });
+
   // Same UNIQUE-violation race fix as trigger-research/plan, but for the
   // generator. Prevents cron + manual "Run now" overlap from spawning two
   // generator routines that both try to claim the same /latest row.
-  const insert = await insertTriggered(
-    "generator",
-    isCron ? "cron" : "ui",
-    null,
-  );
+  const insert = await insertTriggered("generator", triggeredBy, null);
   if (!insert.ok && "conflict" in insert) {
     const inFlight = await checkInFlight("generator");
+    logEvent("warn", "trigger.conflict", {
+      routine: "generator",
+      triggered_by: triggeredBy,
+      conflict_run_id: inFlight?.id ?? null,
+    });
     return NextResponse.json(
       {
         error: "conflict",
@@ -49,14 +57,24 @@ async function handler(req: NextRequest) {
   );
   if (!fire.ok) {
     await markFireFailed(runId, fire.body);
+    logEvent("error", "trigger.fire_failed", {
+      run_id: runId,
+      routine: "generator",
+      status: fire.status,
+    });
     return NextResponse.json({ error: fire.body }, { status: fire.status });
   }
 
   await markAccepted(runId, fire.body);
+  logEvent("info", "trigger.accepted", {
+    run_id: runId,
+    routine: "generator",
+    triggered_by: triggeredBy,
+  });
   return NextResponse.json({
     ok: true,
     run_id: runId,
-    source: isCron ? "cron" : "ui",
+    source: triggeredBy,
   });
 }
 

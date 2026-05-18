@@ -1,3 +1,5 @@
+import { logEvent } from "./log";
+
 const RETRY_BACKOFF_MS = [1000, 4000];
 
 function isRetryable(status: number): boolean {
@@ -40,7 +42,11 @@ export async function fireRoutine(
     const body = await r.text();
 
     if (r.ok) {
-      console.log(`[fire-routine] ${routineId} attempt=${attempt} ok ${body}`);
+      logEvent("info", "fire.attempt.ok", {
+        routine_id: routineId,
+        attempt,
+        body_len: body.length,
+      });
       return { ok: true, body };
     }
 
@@ -48,17 +54,22 @@ export async function fireRoutine(
     const shouldRetry = isRetryable(r.status) && !isFinalAttempt;
 
     if (!shouldRetry) {
-      console.error(
-        `[fire-routine] ${routineId} attempt=${attempt} → ${r.status} (final)`,
+      logEvent("error", "fire.attempt.final_fail", {
+        routine_id: routineId,
+        attempt,
+        status: r.status,
         body,
-      );
+      });
       return { ok: false, status: r.status, body };
     }
 
     const backoffMs = RETRY_BACKOFF_MS[attempt - 1];
-    console.warn(
-      `[fire-routine] ${routineId} attempt=${attempt} → ${r.status} (retrying in ${backoffMs}ms)`,
-    );
+    logEvent("warn", "fire.attempt.retry", {
+      routine_id: routineId,
+      attempt,
+      status: r.status,
+      backoff_ms: backoffMs,
+    });
     await sleep(backoffMs);
   }
 

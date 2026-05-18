@@ -7,6 +7,7 @@ import {
   markAccepted,
   markFireFailed,
 } from "@/lib/routine-runs";
+import { logEvent } from "@/lib/log";
 
 export async function POST(req: NextRequest) {
   const { idea_id } = (await req.json()) as { idea_id: number };
@@ -14,11 +15,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "idea_id required" }, { status: 400 });
   }
 
+  logEvent("info", "trigger.start", {
+    routine: "researcher",
+    triggered_by: "ui",
+    idea_id,
+  });
+
   // Step 1: claim the in-flight slot via INSERT. UNIQUE-violation on
   // routine_runs_in_flight_idx means another pursuit is already running.
   const insert = await insertTriggered("researcher", "ui", idea_id);
   if (!insert.ok && "conflict" in insert) {
     const inFlight = await checkInFlight("researcher");
+    logEvent("warn", "trigger.conflict", {
+      routine: "researcher",
+      idea_id,
+      conflict_run_id: inFlight?.id ?? null,
+      conflict_idea_id: inFlight?.idea_context_id ?? null,
+    });
     return NextResponse.json(
       {
         error: "conflict",
@@ -58,9 +71,20 @@ export async function POST(req: NextRequest) {
   if (!fire.ok) {
     await markFireFailed(runId, fire.body);
     await supabase.from("ideas").update({ status: "new" }).eq("id", idea_id);
+    logEvent("error", "trigger.fire_failed", {
+      run_id: runId,
+      routine: "researcher",
+      idea_id,
+      status: fire.status,
+    });
     return NextResponse.json({ error: fire.body }, { status: fire.status });
   }
 
   await markAccepted(runId, fire.body);
+  logEvent("info", "trigger.accepted", {
+    run_id: runId,
+    routine: "researcher",
+    idea_id,
+  });
   return NextResponse.json({ ok: true, run_id: runId });
 }
