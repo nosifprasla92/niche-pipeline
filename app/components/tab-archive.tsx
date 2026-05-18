@@ -13,7 +13,11 @@ const FILTERS = [
 ];
 
 export function TabArchive() {
-  const { data } = useSWR<{ ideas: Idea[] }>("/api/ideas", fetcher, { refreshInterval: 30000 });
+  const { data } = useSWR<{ ideas: Idea[] }>(
+    "/api/ideas?status=passed,launched,in_progress",
+    fetcher,
+    { refreshInterval: 30000 },
+  );
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<Idea | null>(null);
