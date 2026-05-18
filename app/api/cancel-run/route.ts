@@ -20,16 +20,46 @@ function revertStatusFor(routine: RoutineName): "new" | "researched" | null {
   }
 }
 
-export async function POST(req: NextRequest) {
-  const { run_id } = (await req.json()) as { run_id: number };
-  if (!run_id) {
-    return NextResponse.json({ error: "run_id required" }, { status: 400 });
+type Body = { run_id?: number; idea_id?: number };
+
+async function resolveRunId(
+  body: Body,
+): Promise<{ ok: true; run_id: number } | { ok: false; status: number; error: string }> {
+  if (body.run_id) {
+    return { ok: true, run_id: body.run_id };
   }
+  if (!body.idea_id) {
+    return { ok: false, status: 400, error: "run_id or idea_id required" };
+  }
+  const { data, error } = await supabase
+    .from("routine_runs")
+    .select("id")
+    .eq("idea_context_id", body.idea_id)
+    .in("status", IN_FLIGHT_STATUSES)
+    .maybeSingle();
+  if (error) return { ok: false, status: 500, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      status: 404,
+      error: `no in-flight run for idea ${body.idea_id}`,
+    };
+  }
+  return { ok: true, run_id: data.id };
+}
+
+export async function POST(req: NextRequest) {
+  const body = (await req.json()) as Body;
+  const resolved = await resolveRunId(body);
+  if (!resolved.ok) {
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+  }
+  const runId = resolved.run_id;
 
   const { data: run, error } = await supabase
     .from("routine_runs")
     .select("id, status, routine_name, idea_context_id")
-    .eq("id", run_id)
+    .eq("id", runId)
     .maybeSingle();
 
   if (error) {
@@ -37,7 +67,7 @@ export async function POST(req: NextRequest) {
   }
   if (!run) {
     return NextResponse.json(
-      { error: `run ${run_id} not found` },
+      { error: `run ${runId} not found` },
       { status: 404 },
     );
   }
@@ -50,7 +80,7 @@ export async function POST(req: NextRequest) {
   if (!IN_FLIGHT_STATUSES.includes(run.status)) {
     return NextResponse.json(
       {
-        error: `run ${run_id} is not in-flight (current status: ${run.status})`,
+        error: `run ${runId} is not in-flight (current status: ${run.status})`,
       },
       { status: 400 },
     );
@@ -74,7 +104,8 @@ export async function POST(req: NextRequest) {
     run_id: run.id,
     routine: run.routine_name,
     idea_context_id: run.idea_context_id,
+    lookup_by: body.run_id ? "run_id" : "idea_id",
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, run_id: run.id });
 }
