@@ -4,7 +4,13 @@ import type { RoutineName } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-const VALID_ROUTINES: RoutineName[] = ["generator", "researcher", "planner"];
+const VALID_ROUTINES: RoutineName[] = [
+  "generator",
+  "researcher",
+  "validator",
+  "planner",
+  "postmortem",
+];
 
 function isRoutineName(s: string | null): s is RoutineName {
   return s !== null && (VALID_ROUTINES as string[]).includes(s);
