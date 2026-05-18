@@ -19,13 +19,13 @@ function computeDotColor(runs: RoutineRun[]): DotColor {
 function dotClasses(c: DotColor): string {
   switch (c) {
     case "green":
-      return "bg-emerald-500";
+      return "bg-success";
     case "yellow":
-      return "bg-amber-500 animate-pulse";
+      return "bg-warning animate-pulse";
     case "red":
-      return "bg-red-500";
+      return "bg-error";
     case "gray":
-      return "bg-zinc-300 dark:bg-zinc-700";
+      return "bg-border";
   }
 }
 
@@ -40,13 +40,13 @@ function dotTitle(c: DotColor, runs: RoutineRun[]): string {
 }
 
 const STATUS_BADGE: Record<RoutineRunStatus, string> = {
-  triggered: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-  accepted: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
-  completed: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
-  error: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
-  fire_failed: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
-  timed_out: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
-  cancelled: "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
+  triggered: "bg-border text-muted",
+  accepted: "bg-border text-warning",
+  completed: "bg-border text-success",
+  error: "bg-border text-error",
+  fire_failed: "bg-border text-error",
+  timed_out: "bg-border text-warning",
+  cancelled: "bg-border text-muted",
 };
 
 function timeAgo(iso: string): string {
@@ -83,7 +83,7 @@ export function RunsPanel() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className={`w-2.5 h-2.5 rounded-full ${dotClasses(color)} hover:ring-2 hover:ring-zinc-300 dark:hover:ring-zinc-700 cursor-pointer transition-shadow`}
+        className={`w-2.5 h-2.5 rounded-full ${dotClasses(color)} hover:ring-2 hover:ring-border cursor-pointer transition-shadow`}
         title={dotTitle(color, runs)}
         aria-label={dotTitle(color, runs)}
       />
@@ -105,25 +105,25 @@ function RunsDrawer({
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl"
+        className="bg-surface border border-border rounded-md max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
-          <h2 className="text-sm font-semibold tracking-tight">
+        <header className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
             Recent routine runs
           </h2>
           <button
             onClick={onClose}
-            className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 text-xl leading-none"
+            className="text-muted hover:text-text text-xl leading-none"
             aria-label="Close"
           >
             ×
           </button>
         </header>
         {runs.length === 0 ? (
-          <div className="p-6 text-sm text-zinc-500">No routine runs yet.</div>
+          <div className="p-6 text-sm text-muted">No routine runs yet.</div>
         ) : (
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
+          <div className="divide-y divide-border">
             {runs.map((r) => (
               <RunRow key={r.id} run={r} />
             ))}
@@ -138,26 +138,26 @@ function RunRow({ run }: { run: RoutineRun }) {
   const dur = duration(run.started_at, run.finished_at);
   return (
     <div className="px-4 py-3">
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
         <span className="text-sm font-medium">{run.routine_name}</span>
         <span
-          className={`text-xs px-1.5 py-0.5 rounded ${STATUS_BADGE[run.status]}`}
+          className={`font-mono text-[0.6875rem] uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${STATUS_BADGE[run.status]}`}
         >
           {run.status}
         </span>
-        <span className="text-xs text-zinc-500">
+        <span className="font-mono text-xs text-muted">
           {timeAgo(run.started_at)}
           {dur && ` · ${dur}`}
           {run.triggered_by !== "callback" && ` · ${run.triggered_by}`}
         </span>
       </div>
       {run.summary && (
-        <div className="text-xs text-zinc-600 dark:text-zinc-400">
+        <div className="text-xs text-muted leading-relaxed">
           {run.summary}
         </div>
       )}
       {run.error_message && (
-        <div className="text-xs text-red-600 dark:text-red-400 mt-1 font-mono">
+        <div className="font-mono text-xs text-error mt-1">
           {run.error_message}
         </div>
       )}

@@ -15,12 +15,12 @@ export function TabResearching() {
   );
   const ideas = data?.ideas ?? [];
 
-  if (!data) return <div className="text-sm text-zinc-500">Loading…</div>;
+  if (!data) return <div className="text-sm text-muted">Loading…</div>;
   if (ideas.length === 0)
-    return <div className="text-sm text-zinc-500">Nothing in research right now.</div>;
+    return <div className="text-sm text-muted">Nothing in research right now.</div>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 max-w-[720px]">
       {ideas.map((idea) => (
         <ResearchCard key={idea.id} idea={idea} onChange={() => mutate()} />
       ))}
@@ -62,19 +62,19 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
   if (idea.status === "pursuing") {
     return (
       <Card>
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-4">
           <StatusPill status={idea.status} />
-          <span className="text-xs text-zinc-500">{formatDate(idea.updated_at)}</span>
+          <span className="font-mono text-xs text-muted">{formatDate(idea.updated_at)}</span>
         </div>
-        <h3 className="text-lg font-semibold mb-1">{idea.title}</h3>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">{idea.description}</p>
-        <div className="animate-pulse text-sm text-zinc-500 mb-4">
+        <h3 className="font-display text-2xl leading-tight mb-3">{idea.title}</h3>
+        <p className="text-base text-text/90 leading-relaxed mb-5">{idea.description}</p>
+        <div className="animate-pulse font-mono text-xs uppercase tracking-wider text-muted mb-5">
           Deep research in progress… typically 2–5 minutes.
         </div>
         {!rejecting ? (
           <button
             onClick={() => setRejecting(true)}
-            className="px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-4 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/50 transition-colors"
           >
             Archive
           </button>
@@ -85,15 +85,15 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Reason (optional — becomes a dislike pattern)"
-              className="flex-1 text-sm px-3 py-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent"
+              className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
             />
             <button
               onClick={rejectPursuing}
-              className="px-3 py-1.5 text-sm rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900"
+              className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
             >
               Confirm
             </button>
-            <button onClick={() => setRejecting(false)} className="text-sm text-zinc-500">
+            <button onClick={() => setRejecting(false)} className="text-sm text-muted hover:text-text">
               Cancel
             </button>
           </div>
@@ -155,16 +155,16 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
 
   return (
     <Card>
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3 mb-4">
         <StatusPill status={idea.status} />
-        <span className="text-xs text-zinc-500">
+        <span className="font-mono text-xs text-muted">
           researched {idea.researched_at && formatDate(idea.researched_at)}
         </span>
       </div>
-      <h3 className="text-lg font-semibold mb-1">{idea.title}</h3>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">{idea.description}</p>
+      <h3 className="font-display text-2xl leading-tight mb-3">{idea.title}</h3>
+      <p className="text-base text-text/90 leading-relaxed mb-5">{idea.description}</p>
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-3 gap-3 mb-5">
         <Metric label="Competition" value={`${idea.competition_score ?? "—"}/10`} />
         <Metric label="Effort" value={`${idea.effort_weeks ?? "—"} wks`} />
         <Metric
@@ -178,38 +178,38 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
       <Section title="Marketing spend">{idea.marketing_breakdown}</Section>
 
       {!rejecting ? (
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 mt-5">
           <button
             onClick={approve}
             disabled={busy}
-            className="px-3 py-1.5 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+            className="px-4 py-1.5 text-sm rounded-md bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             Approve plan
           </button>
           <button
             onClick={() => setRejecting(true)}
             disabled={busy}
-            className="px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-4 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/50 transition-colors"
           >
             Reject
           </button>
         </div>
       ) : (
-        <div className="flex gap-2 items-center mt-4">
+        <div className="flex gap-2 items-center mt-5">
           <input
             autoFocus
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason (becomes a dislike pattern)"
-            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent"
+            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           />
           <button
             onClick={reject}
-            className="px-3 py-1.5 text-sm rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900"
+            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
           >
             Confirm
           </button>
-          <button onClick={() => setRejecting(false)} className="text-sm text-zinc-500">
+          <button onClick={() => setRejecting(false)} className="text-sm text-muted hover:text-text">
             Cancel
           </button>
         </div>
@@ -231,9 +231,9 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-zinc-200 dark:border-zinc-800 rounded-md p-3">
-      <div className="text-xs text-zinc-500 mb-1">{label}</div>
-      <div className="text-lg font-semibold">{value}</div>
+    <div className="border border-border rounded-md p-3">
+      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1">{label}</div>
+      <div className="font-mono text-lg">{value}</div>
     </div>
   );
 }
@@ -241,9 +241,9 @@ function Metric({ label, value }: { label: string; value: string }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   if (!children) return null;
   return (
-    <div className="mb-3">
-      <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">{title}</div>
-      <p className="text-sm">{children}</p>
+    <div className="mb-4">
+      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">{title}</div>
+      <p className="text-sm leading-relaxed">{children}</p>
     </div>
   );
 }

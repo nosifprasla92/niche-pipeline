@@ -49,20 +49,20 @@ export function TabInsights() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[720px]">
       <div className="grid grid-cols-3 gap-3">
         <Stat label="Suggested (30d)" value={suggested} />
         <Stat label="Pursued" value={pursued} />
         <Stat label="Launched" value={launched} />
       </div>
 
-      <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
-        <div className="text-sm font-medium mb-2">Add pattern</div>
+      <div className="border border-border rounded-md p-4 bg-surface">
+        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">Add pattern</div>
         <div className="flex gap-2">
           <select
             value={newType}
             onChange={(e) => setNewType(e.target.value as "like" | "dislike")}
-            className="text-sm px-3 py-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent"
+            className="text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           >
             <option value="dislike">Dislike</option>
             <option value="like">Like</option>
@@ -71,11 +71,11 @@ export function TabInsights() {
             value={newPattern}
             onChange={(e) => setNewPattern(e.target.value)}
             placeholder="e.g. avoid anything with physical inventory"
-            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent"
+            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           />
           <button
             onClick={addPattern}
-            className="px-3 py-1.5 text-sm rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900"
+            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
           >
             Add
           </button>
@@ -85,13 +85,13 @@ export function TabInsights() {
       <div className="grid grid-cols-2 gap-4">
         <PatternColumn
           title="What you like"
-          color="green"
+          tone="like"
           patterns={likes}
           onRemove={removePattern}
         />
         <PatternColumn
           title="What you avoid"
-          color="red"
+          tone="dislike"
           patterns={dislikes}
           onRemove={removePattern}
         />
@@ -102,47 +102,44 @@ export function TabInsights() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="border border-zinc-200 dark:border-zinc-800 rounded-md p-4">
-      <div className="text-xs text-zinc-500 mb-1">{label}</div>
-      <div className="text-2xl font-semibold">{value}</div>
+    <div className="border border-border rounded-md p-4 bg-surface">
+      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">{label}</div>
+      <div className="font-display text-3xl">{value}</div>
     </div>
   );
 }
 
 function PatternColumn({
   title,
-  color,
+  tone,
   patterns,
   onRemove,
 }: {
   title: string;
-  color: "green" | "red";
+  tone: "like" | "dislike";
   patterns: FeedbackPattern[];
   onRemove: (id: number) => void;
 }) {
-  const colorClasses =
-    color === "green"
-      ? "bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-100"
-      : "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100";
+  const accentText = tone === "like" ? "text-success" : "text-error";
 
   return (
     <div>
-      <div className="text-sm font-medium mb-2">{title}</div>
+      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">{title}</div>
       <div className="space-y-2">
         {patterns.length === 0 && (
-          <div className="text-xs text-zinc-500">None yet.</div>
+          <div className="text-xs text-muted">None yet.</div>
         )}
         {patterns.map((p) => (
           <div
             key={p.id}
-            className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-full text-sm ${colorClasses}`}
+            className="flex items-center justify-between gap-2 px-3 py-2 rounded-sm border border-border bg-surface text-sm"
           >
-            <span className="truncate">{p.pattern}</span>
+            <span className={`truncate ${accentText}`}>{p.pattern}</span>
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs opacity-70">×{p.confidence}</span>
+              <span className="font-mono text-xs text-muted">×{p.confidence}</span>
               <button
                 onClick={() => onRemove(p.id)}
-                className="text-xs opacity-60 hover:opacity-100"
+                className="font-mono text-xs text-muted hover:text-text"
               >
                 remove
               </button>

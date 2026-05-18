@@ -13,16 +13,16 @@ export function TabInbox() {
   });
   const ideas = data?.ideas ?? [];
 
-  if (!data) return <div className="text-sm text-zinc-500">Loading…</div>;
+  if (!data) return <div className="text-sm text-muted">Loading…</div>;
   if (ideas.length === 0)
     return (
-      <div className="text-sm text-zinc-500">
-        No new ideas yet. The generator runs daily at 8 AM, or click "Run now" up top.
+      <div className="text-sm text-muted">
+        No new ideas yet. The generator runs daily at 8 AM, or click &ldquo;Run now&rdquo; up top.
       </div>
     );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 max-w-[720px]">
       {ideas.map((idea) => (
         <InboxCard key={idea.id} idea={idea} onChange={() => mutate()} />
       ))}
@@ -91,31 +91,31 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
 
   return (
     <Card>
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3 mb-4">
         <StatusPill status={idea.status} />
-        <span className="text-xs text-zinc-500">{formatDate(idea.created_at)}</span>
+        <span className="font-mono text-xs text-muted">{formatDate(idea.created_at)}</span>
       </div>
-      <h3 className="text-lg font-semibold mb-1">{idea.title}</h3>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">{idea.description}</p>
+      <h3 className="font-display text-2xl leading-tight mb-3">{idea.title}</h3>
+      <p className="text-base text-text/90 leading-relaxed mb-4">{idea.description}</p>
       {idea.tags && idea.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="flex flex-wrap gap-1.5 mb-5">
           {idea.tags.map((t) => (
             <span
               key={t}
-              className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+              className="font-mono text-[0.6875rem] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-border text-muted"
             >
               {t}
             </span>
           ))}
         </div>
       )}
-      <div className="mb-3">
-        <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Why this works</div>
-        <p className="text-sm">{idea.why_it_works}</p>
-      </div>
       <div className="mb-4">
-        <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Devil's advocate</div>
-        <p className="text-sm">{idea.devils_advocate}</p>
+        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Why this works</div>
+        <p className="text-sm leading-relaxed">{idea.why_it_works}</p>
+      </div>
+      <div className="mb-5">
+        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Devil&rsquo;s advocate</div>
+        <p className="text-sm leading-relaxed">{idea.devils_advocate}</p>
       </div>
 
       {!passing ? (
@@ -123,14 +123,14 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
           <button
             onClick={pursue}
             disabled={busy}
-            className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-1.5 text-sm rounded-md bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             Pursue
           </button>
           <button
             onClick={() => setPassing(true)}
             disabled={busy}
-            className="px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-4 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/50 transition-colors"
           >
             Pass
           </button>
@@ -142,18 +142,18 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Why pass? (becomes a dislike pattern)"
-            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent"
+            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           />
           <button
             onClick={pass}
             disabled={busy}
-            className="px-3 py-1.5 text-sm rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900"
+            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
           >
             Confirm
           </button>
           <button
             onClick={() => setPassing(false)}
-            className="text-sm text-zinc-500"
+            className="text-sm text-muted hover:text-text"
           >
             Cancel
           </button>

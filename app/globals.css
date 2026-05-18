@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #FAFAF7;
+  --surface: #FFFFFF;
+  --text: #1A1A18;
+  --muted: #6B6862;
+  --border: #E8E5DE;
+  --accent: #C2410C;
+  --success: #3F7D3F;
+  --warning: #A66A1F;
+  --error: #9F2F2F;
+  --info: #4A6B8A;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #14130F;
+    --surface: #1C1B17;
+    --text: #F0EDE5;
+    --muted: #8A867D;
+    --border: #2A2823;
+    --accent: #FB923C;
+    --success: #7AB87A;
+    --warning: #E0A55F;
+    --error: #E07A7A;
+    --info: #7FA3C2;
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }

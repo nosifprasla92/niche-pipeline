@@ -70,10 +70,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen max-w-5xl mx-auto px-6 py-8">
-      <header className="flex items-start justify-between mb-8">
+      <header className="flex items-start justify-between mb-10">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Niche pipeline</h1>
-          <p className="text-sm text-zinc-500 mt-1">
+          <h1 className="font-display text-4xl tracking-tight">Niche pipeline</h1>
+          <p className="font-mono text-xs text-muted mt-2 uppercase tracking-wider">
             {lastNew
               ? `Last idea ${formatDate(lastNew.created_at)}`
               : "Waiting for first run"}
@@ -86,24 +86,24 @@ export default function Home() {
             <button
               onClick={runNow}
               disabled={running}
-              className="px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/60 disabled:opacity-50"
             >
               {running ? "Running…" : "Run now"}
             </button>
           </div>
-          {error && <span className="text-xs text-red-600">{error}</span>}
+          {error && <span className="text-xs text-error">{error}</span>}
         </div>
       </header>
 
-      <nav className="flex gap-1 mb-6 border-b border-zinc-200 dark:border-zinc-800">
+      <nav className="flex gap-1 mb-8 border-b border-border">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === t.id
-                ? "border-zinc-900 dark:border-zinc-100 text-zinc-900 dark:text-zinc-100"
-                : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                ? "border-text text-text"
+                : "border-transparent text-muted hover:text-text"
             }`}
           >
             {t.label}
