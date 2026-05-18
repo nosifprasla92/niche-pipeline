@@ -8,12 +8,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export type FireResult =
+  | { ok: true; body: string }
+  | { ok: false; status: number; body: string };
+
 export async function fireRoutine(
   routineId: string | undefined,
   token: string | undefined,
-): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+): Promise<FireResult> {
   if (!routineId || !token) {
-    return { ok: false, status: 500, error: "Routine ID or token missing" };
+    return { ok: false, status: 500, body: "Routine ID or token missing" };
   }
 
   const maxAttempts = 1 + RETRY_BACKOFF_MS.length;
@@ -33,22 +37,22 @@ export async function fireRoutine(
       },
     );
 
+    const body = await r.text();
+
     if (r.ok) {
-      const body = await r.text();
       console.log(`[fire-routine] ${routineId} attempt=${attempt} ok ${body}`);
-      return { ok: true };
+      return { ok: true, body };
     }
 
-    const text = await r.text();
     const isFinalAttempt = attempt === maxAttempts;
     const shouldRetry = isRetryable(r.status) && !isFinalAttempt;
 
     if (!shouldRetry) {
       console.error(
         `[fire-routine] ${routineId} attempt=${attempt} → ${r.status} (final)`,
-        text,
+        body,
       );
-      return { ok: false, status: r.status, error: text };
+      return { ok: false, status: r.status, body };
     }
 
     const backoffMs = RETRY_BACKOFF_MS[attempt - 1];
