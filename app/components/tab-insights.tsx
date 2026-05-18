@@ -3,6 +3,7 @@ import useSWR from "swr";
 import { useState } from "react";
 import { fetcher } from "@/lib/fetcher";
 import { FeedbackPattern, Idea } from "@/lib/supabase";
+import { ConflictToast, type Conflict } from "./conflict-toast";
 
 export function TabInsights() {
   const { data: pdata, mutate: mutateP } = useSWR<{ patterns: FeedbackPattern[] }>(
@@ -15,6 +16,10 @@ export function TabInsights() {
   });
   const [newPattern, setNewPattern] = useState("");
   const [newType, setNewType] = useState<"like" | "dislike">("dislike");
+  const [running, setRunning] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<Conflict | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const patterns = pdata?.patterns ?? [];
   const likes = patterns.filter((p) => p.pattern_type === "like");
@@ -55,6 +60,41 @@ export function TabInsights() {
   async function removePattern(id: number) {
     await fetch(`/api/patterns?id=${id}`, { method: "DELETE" });
     mutateP();
+  }
+
+  async function runPostmortem() {
+    setRunning(true);
+    setRunError(null);
+    try {
+      const r = await fetch("/api/run-postmortem", { method: "POST" });
+      if (r.status === 409) {
+        const body = await r.json();
+        setConflict(body.conflict);
+        return;
+      }
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        setRunError(body.error || `HTTP ${r.status}`);
+      }
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function cancelAndRerun() {
+    if (!conflict?.run_id) return;
+    setCancelling(true);
+    try {
+      await fetch("/api/cancel-run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ run_id: conflict.run_id }),
+      });
+      setConflict(null);
+      await runPostmortem();
+    } finally {
+      setCancelling(false);
+    }
   }
 
   return (
@@ -106,6 +146,41 @@ export function TabInsights() {
           onRemove={removePattern}
         />
       </div>
+
+      <div className="border border-border rounded-md p-4 bg-surface">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1">
+              Post-mortem
+            </div>
+            <p className="text-sm text-text/90 leading-relaxed">
+              Cluster killed-idea reasons from the last 14 days into new dislike
+              patterns. Run after you&rsquo;ve killed a few ideas.
+            </p>
+            {runError && (
+              <div className="font-mono text-xs text-error mt-2">{runError}</div>
+            )}
+          </div>
+          <button
+            onClick={runPostmortem}
+            disabled={running}
+            className="shrink-0 px-3 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/60 disabled:opacity-50 transition-colors"
+          >
+            {running ? "Running…" : "Run post-mortem"}
+          </button>
+        </div>
+      </div>
+
+      {conflict && (
+        <ConflictToast
+          message="The post-mortem routine is already running. Cancel that run and start a new one?"
+          cancelLabel="Cancel running and re-fire"
+          canCancel={conflict.run_id != null}
+          cancelling={cancelling}
+          onCancel={cancelAndRerun}
+          onDismiss={() => setConflict(null)}
+        />
+      )}
     </div>
   );
 }

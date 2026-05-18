@@ -7,10 +7,6 @@
     {
       "path": "/api/sweep-runs",
       "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/run-postmortem",
-      "schedule": "0 5 * * 1"
     }
   ]
 }
