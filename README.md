@@ -16,8 +16,17 @@ Open `http://localhost:3000?password=<DASHBOARD_PASSWORD>` (or remove `DASHBOARD
 ## Required setup before running
 
 1. **Supabase project + schema** — run the SQL from the build kit (`ideas` + `feedback_patterns` tables, plus the `touch_updated_at` trigger).
-2. **Three Claude Cloud Routines** — Idea Generator (daily 8am), Deep Researcher (API trigger), Plan Builder (API trigger). Copy the two API trigger URLs into `.env.local`.
-3. **(Optional)** Add an API trigger to the Idea Generator routine too, paste its URL into `GENERATOR_TRIGGER_URL`, and the "Run now" button will fire it.
+2. **Three Claude Cloud Routines** at <https://claude.ai/code/routines>:
+   - **Idea Generator** — cron `0 4 * * *` (= 8 AM Indian/Mahe daily).
+   - **Deep Researcher** — no cron; fired on demand.
+   - **Plan Builder** — no cron; fired on demand.
+3. **Mint an API trigger on each routine.** Open the routine page → "Add API trigger" → copy the `sk-ant-oat01-…` token (shown once) and the routine ID (`trig_…` from the URL) into `.env.local` as `{NAME}_ROUTINE_ID` + `{NAME}_TRIGGER_TOKEN`. The dashboard fires routines via `POST https://api.anthropic.com/v1/claude_code/routines/{id}/fire` with that token — see [`lib/fire-routine.ts`](lib/fire-routine.ts).
+4. The three triggers in the app:
+   - `/api/run-generator` → fires the generator routine ("Run now" button).
+   - `/api/trigger-research` → sets the idea's status to `pursuing`, then fires the researcher. The researcher picks up the most recently updated `pursuing` row.
+   - `/api/trigger-plan` → sets the idea's status to `planning`, then fires the planner. Same status-based contract.
+
+> The Anthropic `fire` endpoint does not accept a payload, so the routines locate their target row by `status` rather than by a passed `idea_id`. Keep one idea in flight per stage at a time.
 
 ## Deploy to Vercel
 
