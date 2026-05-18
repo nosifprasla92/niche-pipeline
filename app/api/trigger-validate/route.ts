@@ -16,16 +16,16 @@ export async function POST(req: NextRequest) {
   }
 
   logEvent("info", "trigger.start", {
-    routine: "planner",
+    routine: "validator",
     triggered_by: "ui",
     idea_id,
   });
 
-  const insert = await insertTriggered("planner", "ui", idea_id);
+  const insert = await insertTriggered("validator", "ui", idea_id);
   if (!insert.ok && "conflict" in insert) {
-    const inFlight = await checkInFlight("planner");
+    const inFlight = await checkInFlight("validator");
     logEvent("warn", "trigger.conflict", {
-      routine: "planner",
+      routine: "validator",
       idea_id,
       conflict_run_id: inFlight?.id ?? null,
       conflict_idea_id: inFlight?.idea_context_id ?? null,
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   const { error: ideaErr } = await supabase
     .from("ideas")
-    .update({ status: "planning" })
+    .update({ status: "validating" })
     .eq("id", idea_id);
   if (ideaErr) {
     await markFireFailed(runId, `ideas update: ${ideaErr.message}`);
@@ -58,20 +58,20 @@ export async function POST(req: NextRequest) {
   }
 
   const fire = await fireRoutine(
-    process.env.PLAN_ROUTINE_ID,
-    process.env.PLAN_TRIGGER_TOKEN,
+    process.env.VALIDATE_ROUTINE_ID,
+    process.env.VALIDATE_TRIGGER_TOKEN,
   );
   if (!fire.ok) {
     await markFireFailed(runId, fire.body);
-    // Revert to 'validated' so the user can retry from the Validating tab
-    // without losing the validation kit.
+    // Revert to 'researched' so the user can retry from the Researching tab
+    // without losing the research output.
     await supabase
       .from("ideas")
-      .update({ status: "validated" })
+      .update({ status: "researched" })
       .eq("id", idea_id);
     logEvent("error", "trigger.fire_failed", {
       run_id: runId,
-      routine: "planner",
+      routine: "validator",
       idea_id,
       status: fire.status,
     });
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   await markAccepted(runId, fire.body);
   logEvent("info", "trigger.accepted", {
     run_id: runId,
-    routine: "planner",
+    routine: "validator",
     idea_id,
   });
   return NextResponse.json({ ok: true, run_id: runId });

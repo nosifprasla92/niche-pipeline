@@ -31,7 +31,7 @@ export function TabInbox() {
 }
 
 function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
-  const [passing, setPassing] = useState(false);
+  const [killing, setKilling] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState<Conflict | null>(null);
@@ -72,14 +72,18 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
     }
   }
 
-  async function pass() {
+  async function kill() {
     setBusy(true);
     await fetch("/api/update-idea", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         id: idea.id,
-        patch: { status: "passed", passed_reason: reason },
+        patch: {
+          status: "killed",
+          kill_reason: reason,
+          killed_at: new Date().toISOString(),
+        },
         feedback: reason ? { pattern_type: "dislike", pattern: reason } : undefined,
       }),
     });
@@ -118,7 +122,7 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
         <p className="text-sm leading-relaxed">{idea.devils_advocate}</p>
       </div>
 
-      {!passing ? (
+      {!killing ? (
         <div className="flex gap-2">
           <button
             onClick={pursue}
@@ -128,11 +132,11 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
             Pursue
           </button>
           <button
-            onClick={() => setPassing(true)}
+            onClick={() => setKilling(true)}
             disabled={busy}
-            className="px-4 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/50 transition-colors"
+            className="px-4 py-1.5 text-sm rounded-md border border-border text-error hover:bg-border/50 transition-colors"
           >
-            Pass
+            Kill
           </button>
         </div>
       ) : (
@@ -141,18 +145,18 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
             autoFocus
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Why pass? (becomes a dislike pattern)"
+            placeholder="Why kill? (becomes a dislike pattern)"
             className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           />
           <button
-            onClick={pass}
+            onClick={kill}
             disabled={busy}
             className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
           >
             Confirm
           </button>
           <button
-            onClick={() => setPassing(false)}
+            onClick={() => setKilling(false)}
             className="text-sm text-muted hover:text-text"
           >
             Cancel

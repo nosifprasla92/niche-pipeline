@@ -7,7 +7,7 @@ import { StatusPill } from "./status-pill";
 
 export function TabPlans() {
   const { data, mutate } = useSWR<{ ideas: Idea[] }>(
-    "/api/ideas?status=planning,plan_ready,in_progress",
+    "/api/ideas?status=planning,plan_ready",
     fetcher,
     { refreshInterval: 30000 },
   );
@@ -93,16 +93,32 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
         </div>
       )}
 
-      {plan.go_to_market && plan.go_to_market.length > 0 && (
+      {plan.go_to_market_zero_paid && plan.go_to_market_zero_paid.length > 0 && (
         <div className="mb-4">
-          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Go to market</div>
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">
+            Go to market — zero paid (first 10 customers)
+          </div>
           <ul className="list-disc ml-5 text-sm space-y-0.5 leading-relaxed">
-            {plan.go_to_market.map((g, i) => (
+            {plan.go_to_market_zero_paid.map((g, i) => (
               <li key={i}>{g}</li>
             ))}
           </ul>
         </div>
       )}
+
+      {plan.go_to_market_paid_after_10_customers &&
+        plan.go_to_market_paid_after_10_customers.length > 0 && (
+          <div className="mb-4">
+            <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">
+              Go to market — paid (after 10 customers)
+            </div>
+            <ul className="list-disc ml-5 text-sm space-y-0.5 leading-relaxed">
+              {plan.go_to_market_paid_after_10_customers.map((g, i) => (
+                <li key={i}>{g}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
       {plan.launch_plan_12_weeks && plan.launch_plan_12_weeks.length > 0 && (
         <div className="mb-4">
@@ -151,18 +167,19 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
         </div>
       )}
 
+      {plan.kill_conditions && plan.kill_conditions.length > 0 && (
+        <div className="mb-4">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Kill conditions</div>
+          <ul className="list-disc ml-5 text-sm leading-relaxed">
+            {plan.kill_conditions.map((c, i) => <li key={i}>{c}</li>)}
+          </ul>
+        </div>
+      )}
+
       <div className="flex gap-2 mt-5">
-        {idea.status !== "in_progress" && (
-          <button
-            onClick={() => setStatus("in_progress")}
-            className="px-4 py-1.5 text-sm rounded-md bg-accent text-white hover:opacity-90 transition-opacity"
-          >
-            Mark in progress
-          </button>
-        )}
         <button
           onClick={() => setStatus("launched")}
-          className="px-4 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/50 transition-colors"
+          className="px-4 py-1.5 text-sm rounded-md bg-accent text-white hover:opacity-90 transition-opacity"
         >
           Mark launched
         </button>

@@ -5,17 +5,21 @@ import { logEvent } from "@/lib/log";
 
 const IN_FLIGHT_STATUSES = ["triggered", "accepted"] as const;
 
-// When a researcher run is cancelled, revert the linked idea to 'new' so
-// the user can re-pursue it. When a planner run is cancelled, revert to
-// 'researched' so the research output isn't lost. Generator runs have no
-// idea to revert.
-function revertStatusFor(routine: RoutineName): "new" | "researched" | null {
+// When a routine run is cancelled, revert the linked idea to the prior
+// stable status so the user can retry without manual cleanup. Generator
+// and postmortem runs have no idea to revert.
+function revertStatusFor(
+  routine: RoutineName,
+): "new" | "researched" | "validated" | null {
   switch (routine) {
     case "researcher":
       return "new";
-    case "planner":
+    case "validator":
       return "researched";
+    case "planner":
+      return "validated";
     case "generator":
+    case "postmortem":
       return null;
   }
 }

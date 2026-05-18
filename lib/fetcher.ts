@@ -8,22 +8,24 @@ export const STATUS_LABEL: Record<string, string> = {
   new: "new",
   pursuing: "researching",
   researched: "researched",
+  validating: "validating",
+  validated: "validated",
   planning: "planning",
   plan_ready: "plan ready",
-  in_progress: "in progress",
   launched: "launched",
-  passed: "passed",
+  killed: "killed",
 };
 
 export const STATUS_COLOR: Record<string, string> = {
   new: "bg-border text-info",
   pursuing: "bg-border text-warning",
   researched: "bg-border text-warning",
+  validating: "bg-border text-warning",
+  validated: "bg-border text-success",
   planning: "bg-border text-success",
   plan_ready: "bg-border text-success",
-  in_progress: "bg-border text-accent",
   launched: "bg-border text-success",
-  passed: "bg-border text-muted",
+  killed: "bg-border text-muted",
 };
 
 export function formatDate(s: string) {

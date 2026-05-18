@@ -26,9 +26,18 @@ export function TabInsights() {
   const recent = last30(30);
   const suggested = recent.length;
   const pursued = recent.filter((i) =>
-    ["pursuing", "researched", "planning", "plan_ready", "in_progress", "launched"].includes(
-      i.status,
-    ),
+    [
+      "pursuing",
+      "researched",
+      "validating",
+      "validated",
+      "planning",
+      "plan_ready",
+      "launched",
+    ].includes(i.status),
+  ).length;
+  const validated = recent.filter((i) =>
+    ["validated", "planning", "plan_ready", "launched"].includes(i.status),
   ).length;
   const launched = recent.filter((i) => i.status === "launched").length;
 
@@ -50,9 +59,10 @@ export function TabInsights() {
 
   return (
     <div className="space-y-6 max-w-[720px]">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <Stat label="Suggested (30d)" value={suggested} />
         <Stat label="Pursued" value={pursued} />
+        <Stat label="Validated" value={validated} />
         <Stat label="Launched" value={launched} />
       </div>
 

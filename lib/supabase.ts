@@ -15,11 +15,14 @@ export type Status =
   | "new"
   | "pursuing"
   | "researched"
+  | "validating"
+  | "validated"
   | "planning"
   | "plan_ready"
-  | "in_progress"
   | "launched"
-  | "passed";
+  | "killed";
+
+export type IncomeBracket = "lifestyle" | "business";
 
 export type Idea = {
   id: number;
@@ -31,18 +34,34 @@ export type Idea = {
   why_it_works: string;
   devils_advocate: string;
   status: Status;
-  competition_score: number | null;
+  income_bracket: IncomeBracket | null;
+
+  // Research output
+  competitors_above_50: number | null;
+  competitor_complaints: string | null;
   competition_analysis: string | null;
   effort_weeks: number | null;
   effort_breakdown: string | null;
-  marketing_cost_3mo: number | null;
-  marketing_breakdown: string | null;
+  zero_paid_path: string | null;
   researched_at: string | null;
+
+  // Validation kit (routine 3)
+  landing_copy: string | null;
+  interview_questions: string | null;
+  ad_test_plan: string | null;
+  validation_signals: string | null;
+  validated_at: string | null;
+
+  // Plan
   business_plan: BusinessPlan | null;
   first_actions: string[] | null;
   plan_ready_at: string | null;
+
+  // Kill
+  kill_reason: string | null;
+  killed_at: string | null;
+
   user_notes: string | null;
-  passed_reason: string | null;
 };
 
 export type BusinessPlan = {
@@ -54,7 +73,8 @@ export type BusinessPlan = {
     pricing_model?: string;
     landing_page_strategy?: string;
   };
-  go_to_market?: string[];
+  go_to_market_zero_paid?: string[];
+  go_to_market_paid_after_10_customers?: string[];
   launch_plan_12_weeks?: { weeks: string; title: string; tasks: string[] }[];
   tools_stack?: string[];
   financial_projection?: {
@@ -63,6 +83,7 @@ export type BusinessPlan = {
     month_12?: string;
   };
   biggest_risks?: string[];
+  kill_conditions?: string[];
 };
 
 export type FeedbackPattern = {
@@ -74,7 +95,12 @@ export type FeedbackPattern = {
   source_idea_id: number | null;
 };
 
-export type RoutineName = "generator" | "researcher" | "planner";
+export type RoutineName =
+  | "generator"
+  | "researcher"
+  | "validator"
+  | "planner"
+  | "postmortem";
 
 export type RoutineRunStatus =
   | "triggered"

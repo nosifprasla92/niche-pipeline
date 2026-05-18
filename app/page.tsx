@@ -5,6 +5,7 @@ import { fetcher, formatDate } from "@/lib/fetcher";
 import { Idea } from "@/lib/supabase";
 import { TabInbox } from "./components/tab-inbox";
 import { TabResearching } from "./components/tab-researching";
+import { TabValidating } from "./components/tab-validating";
 import { TabPlans } from "./components/tab-plans";
 import { TabArchive } from "./components/tab-archive";
 import { TabInsights } from "./components/tab-insights";
@@ -14,6 +15,7 @@ import { ConflictToast, type Conflict } from "./components/conflict-toast";
 const TABS = [
   { id: "inbox", label: "Inbox" },
   { id: "researching", label: "Researching" },
+  { id: "validating", label: "Validating" },
   { id: "plans", label: "Plans" },
   { id: "archive", label: "Archive" },
   { id: "insights", label: "Insights" },
@@ -114,6 +116,7 @@ export default function Home() {
       <main>
         {tab === "inbox" && <TabInbox />}
         {tab === "researching" && <TabResearching />}
+        {tab === "validating" && <TabValidating />}
         {tab === "plans" && <TabPlans />}
         {tab === "archive" && <TabArchive />}
         {tab === "insights" && <TabInsights />}

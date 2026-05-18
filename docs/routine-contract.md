@@ -1,14 +1,32 @@
 # Routine ↔ Dashboard Contract
 
 This document describes the HTTP contract that Claude Cloud Routines use to
-talk back to the niche-pipeline dashboard. Each of the three routines
-(Generator, Researcher, Planner) must implement this contract for the
-observability and feedback-wiring features added in A+.
+talk back to the niche-pipeline dashboard. Each of the five routines
+(Generator, Researcher, Validator, Planner, Post-mortem) must implement this
+contract for the observability and feedback-wiring features.
 
-The dashboard side is shipped as part of A+. The routine side lives at
+The dashboard side ships in this repo. The routine side lives at
 [claude.ai/code/routines](https://claude.ai/code/routines) — outside this
 repo — and must be updated by hand following the deploy runbook at the end
 of this doc.
+
+## Routines at a glance
+
+| # | Name        | Trigger                                                 | Idea status transitions          |
+|---|-------------|---------------------------------------------------------|----------------------------------|
+| 1 | Generator   | Vercel Cron daily 04:00 UTC, or manual "Run now"        | writes new rows with `status='new'` |
+| 2 | Researcher  | UI "Pursue" on a `new` idea (`POST /api/trigger-research`) | `new → pursuing → researched` (or `killed` on auto-kill signals) |
+| 3 | Validator   | UI "Send to validation" on a `researched` idea (`POST /api/trigger-validate`) | `researched → validating → validated` |
+| 4 | Planner     | UI "Approve plan" on a `validated` idea (`POST /api/trigger-plan`); aborts if `validated_at` is null | `validated → planning → plan_ready` |
+| 5 | Post-mortem | Vercel Cron weekly Mon 05:00 UTC                        | reads `killed` ideas, writes `feedback_patterns` dislikes |
+
+Status flow (manual gates between stages):
+
+```
+new ──▶ pursuing ──▶ researched ──▶ validating ──▶ validated ──▶ planning ──▶ plan_ready ──▶ launched
+          │              │                                                                  
+          └──────────────┴──▶ killed  (terminal, with kill_reason)
+```
 
 ---
 
@@ -216,14 +234,43 @@ and put the error message in summary.
    not "most recently updated pursuing" — the latest endpoint already
    resolved that.
 
-[ ... existing research logic, writes back to ideas[idea_context_id] ... ]
+[ ... research logic, writes back to ideas[idea_context_id]:
+       competitors_above_50, competitor_complaints, competition_analysis,
+       effort_weeks, effort_breakdown, zero_paid_path, researched_at,
+       status='researched' (or 'killed' + kill_reason + killed_at on auto-kill) ... ]
 
 ## CALLBACK
 
 POST ${DASHBOARD_URL}/api/routine-runs/{run_id}/complete
 Body: {
   "status": "completed",
-  "summary": "Researched idea #{idea_context_id}: competition_score=X/10, effort=Yw."
+  "summary": "Researched idea #{idea_context_id}: competitors_above_50=X, effort=Yw"
+}
+```
+
+### Validator
+
+```
+[prompt: build a cheap validation kit, see /design memory for full text]
+
+## SETUP
+
+1. GET ${DASHBOARD_URL}/api/routine-runs/latest?routine=validator
+   Capture: run_id, idea_context_id
+
+   The trigger endpoint set the target idea to 'validating'. Use
+   idea_context_id, not "most recently updated validating".
+
+[ ... build validation kit, write back to ideas[idea_context_id]:
+       landing_copy, interview_questions, ad_test_plan, validation_signals,
+       validated_at = now(), status='validated' ... ]
+
+## CALLBACK
+
+POST ${DASHBOARD_URL}/api/routine-runs/{run_id}/complete
+Body: {
+  "status": "completed",
+  "summary": "Validation kit ready for idea #{idea_context_id}. Test price: $X."
 }
 ```
 
@@ -237,7 +284,12 @@ Body: {
 1. GET ${DASHBOARD_URL}/api/routine-runs/latest?routine=planner
    Capture: run_id, idea_context_id
 
-[ ... existing plan-building logic ... ]
+   ABORT if ideas[idea_context_id].validated_at is null — plans only
+   build on validated ideas. Reply 'idea not validated' and POST
+   complete with status='error'.
+
+[ ... plan-building logic, writes business_plan + first_actions + plan_ready_at,
+       status='plan_ready' ... ]
 
 ## CALLBACK
 
@@ -245,6 +297,37 @@ POST ${DASHBOARD_URL}/api/routine-runs/{run_id}/complete
 Body: {
   "status": "completed",
   "summary": "Built 12-week plan for idea #{idea_context_id}."
+}
+```
+
+### Post-mortem
+
+```
+[prompt: cluster killed-idea reasons into 1–3 dislike patterns]
+
+## SETUP
+
+1. GET ${DASHBOARD_URL}/api/routine-runs/latest?routine=postmortem
+   Capture: run_id  (no idea_context_id — postmortem operates over
+   the whole killed-ideas window, not a single idea)
+
+2. Fetch killed ideas via Supabase MCP:
+     SELECT id, title, kill_reason, killed_at
+     FROM ideas
+     WHERE status = 'killed' AND killed_at > now() - interval '14 days'
+
+3. Fetch existing dislike feedback_patterns for dedupe.
+
+[ ... cluster kill_reason texts into 1–3 patterns, upsert each into
+       feedback_patterns as pattern_type='dislike' with confidence
+       proportional to cluster size ... ]
+
+## CALLBACK
+
+POST ${DASHBOARD_URL}/api/routine-runs/{run_id}/complete
+Body: {
+  "status": "completed",
+  "summary": "Clustered N killed ideas into M dislike patterns."
 }
 ```
 

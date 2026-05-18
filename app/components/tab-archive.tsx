@@ -7,14 +7,13 @@ import { StatusPill } from "./status-pill";
 
 const FILTERS = [
   { id: "all", label: "All", match: () => true },
-  { id: "passed", label: "Passed", match: (i: Idea) => i.status === "passed" },
+  { id: "killed", label: "Killed", match: (i: Idea) => i.status === "killed" },
   { id: "launched", label: "Launched", match: (i: Idea) => i.status === "launched" },
-  { id: "in_progress", label: "In progress", match: (i: Idea) => i.status === "in_progress" },
 ];
 
 export function TabArchive() {
   const { data } = useSWR<{ ideas: Idea[] }>(
-    "/api/ideas?status=passed,launched,in_progress",
+    "/api/ideas?status=killed,launched",
     fetcher,
     { refreshInterval: 30000 },
   );
