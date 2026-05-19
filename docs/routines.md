@@ -16,11 +16,11 @@ describes.
 
 | # | Routine | Env vars | Fired by | Last edited | Status |
 |---|---|---|---|---|---|
-| 1 | Generator | `GENERATOR_ROUTINE_ID` + `GENERATOR_TRIGGER_TOKEN` | Vercel Cron daily 04:00 UTC + UI "Run now" | 2026-05-19 | ✅ working (prompt pending v2 rotation update) |
-| 2 | Researcher | `DEEP_RESEARCH_ROUTINE_ID` + `DEEP_RESEARCH_TRIGGER_TOKEN` | UI "Pursue" on a `new` idea | 2026-05-19 | ✅ working |
-| 3 | Validator | `VALIDATE_ROUTINE_ID` + `VALIDATE_TRIGGER_TOKEN` | UI "Send to validation" on a `researched` idea | 2026-05-19 | ✅ working (untested end-to-end) |
-| 4 | Planner | `PLAN_ROUTINE_ID` + `PLAN_TRIGGER_TOKEN` | UI "Approve plan" on a `validated` idea | 2026-05-19 | ✅ working (untested end-to-end) |
-| 5 | Post-mortem | `POSTMORTEM_ROUTINE_ID` + `POSTMORTEM_TRIGGER_TOKEN` | UI "Run post-mortem" on Insights tab | 2026-05-19 | ✅ working (untested end-to-end) |
+| 1 | Generator | `GENERATOR_ROUTINE_ID` + `GENERATOR_TRIGGER_TOKEN` | Vercel Cron daily 04:00 UTC + UI "Run now" | 2026-05-19 (v2.1) | ✅ v2.1 — 5 ideas/run, 5-cell rotation, realistic brackets |
+| 2 | Researcher | `DEEP_RESEARCH_ROUTINE_ID` + `DEEP_RESEARCH_TRIGGER_TOKEN` | UI "Pursue" on a `new` idea | 2026-05-19 (v2) | ✅ v2 — bracket-aware auto-kill thresholds |
+| 3 | Validator | `VALIDATE_ROUTINE_ID` + `VALIDATE_TRIGGER_TOKEN` | UI "Send to validation" on a `researched` idea | 2026-05-19 (v2) | ✅ v2 — untested end-to-end |
+| 4 | Planner | `PLAN_ROUTINE_ID` + `PLAN_TRIGGER_TOKEN` | UI "Approve plan" on a `validated` idea | 2026-05-19 (v2) | ✅ v2 — untested end-to-end |
+| 5 | Post-mortem | `POSTMORTEM_ROUTINE_ID` + `POSTMORTEM_TRIGGER_TOKEN` | UI "Run post-mortem" on Insights tab | 2026-05-19 (v2) | ✅ v2 — untested end-to-end |
 
 ---
 
@@ -29,8 +29,8 @@ describes.
 - **claude.ai URL:** https://claude.ai/code/routines/trig_01SFyDUpCQk8qrYYhJrKVjdD
 - **Trigger:** Vercel Cron (`vercel.json` → `/api/run-generator`, daily 04:00 UTC) AND UI "Run now" button (top of dashboard)
 - **App entry point:** [`app/api/run-generator/route.ts`](../app/api/run-generator/route.ts)
-- **Prompt version:** v1 (3 ideas/run with bracket alternation only)
-- **Pending update:** v2.1 — 5 ideas/run, rotates across domain × GTM × positioning per run, realistic brackets ($500–2K side / $3–8K real, month-12 MRR target), 8 hard exclusions, callback POST wired
+- **Prompt version:** v2.1 (5 ideas/run, 5-cell rotation across domain × GTM × positioning, realistic brackets $500–2K side / $3–8K real with month-12 MRR target, 8 hard exclusions, callback POST wired)
+- **Pending update:** none
 
 **Reads:**
 - `ideas` — recent titles (last 60 days) for dedup; `killed` titles + `kill_reason` for negative learning; most recent `income_bracket` to alternate
@@ -52,7 +52,7 @@ describes.
 - **claude.ai URL:** https://claude.ai/code/routines/trig_01CSaYWLaLJ3ZJ1359FDj4Ry
 - **Trigger:** UI "Pursue" button on an Inbox card → `POST /api/trigger-research` → sets idea to `pursuing`, fires routine
 - **App entry point:** [`app/api/trigger-research/route.ts`](../app/api/trigger-research/route.ts)
-- **Prompt version:** v1
+- **Prompt version:** v2 (bracket-aware auto-kill thresholds: lifestyle <$15/mo or <$99 one-time → kill; business <$49/mo or <$499 one-time → kill; respects dislike patterns; callback POST wired)
 - **Pending update:** none
 
 **Reads:**
@@ -63,10 +63,12 @@ describes.
 - `ideas[idea_context_id]`: `competitors_above_50`, `competitor_complaints` (verbatim 1–3 star quotes), `competition_analysis`, `effort_weeks`, `effort_breakdown`, `zero_paid_path`, `researched_at`, `status = 'researched'`
 
 **Writes (auto-kill — any of these trigger):**
-- No competitors charging >$25 (no proven willingness to pay)
+- `lifestyle` bracket: no competitors charging >$15/mo or >$99 one-time (no proven willingness to pay)
+- `business` bracket: no competitors charging >$49/mo or >$499 one-time
 - No zero-paid path exists
 - Effort > 12 weeks for solo MVP
 - Flat or declining demand signals
+- Matches any dislike pattern in `feedback_patterns`
 - → `status = 'killed'`, `kill_reason` populated, `killed_at = now()`
 
 **Callback:** `POST /api/routine-runs/{run_id}/complete` with summary like `"Researched #{id}: competitors_above_50=X, effort=Yw"` (or kill_reason on auto-kill)
@@ -80,8 +82,8 @@ describes.
 - **claude.ai URL:** https://claude.ai/code/routines/trig_01QDwqYxk4asECd3SnPzHky7
 - **Trigger:** UI "Send to validation" button on a `researched` Researching card → `POST /api/trigger-validate` → sets idea to `validating`, fires routine
 - **App entry point:** [`app/api/trigger-validate/route.ts`](../app/api/trigger-validate/route.ts)
-- **Prompt version:** v1
-- **Pending update:** none — but untested end-to-end as of 2026-05-19
+- **Prompt version:** v2 (3 plain-text artifacts: landing_copy with bracket-matched test price, interview_questions with mom-test 7, ad_test_plan with explicit success threshold; callback POST wired)
+- **Pending update:** none — untested end-to-end as of 2026-05-19
 
 **Reads:**
 - `ideas[idea_context_id]` — full row including research output
@@ -102,7 +104,7 @@ describes.
 - **claude.ai URL:** https://claude.ai/code/routines/trig_01SEb3SFVpCgmagqBLxaaCGj
 - **Trigger:** UI "Approve plan" button on a `validated` Validating card → `POST /api/trigger-plan` → sets idea to `planning`, fires routine
 - **App entry point:** [`app/api/trigger-plan/route.ts`](../app/api/trigger-plan/route.ts)
-- **Prompt version:** v1 (updated for validation gate)
+- **Prompt version:** v2 (validation gate enforced: aborts with `status='error'` if `validated_at` is null; splits GTM into zero-paid + paid-after-10; financial projection capped at 2× bracket month-12 MRR ceiling; callback POST wired)
 - **Pending update:** none
 
 **Reads:**
@@ -123,7 +125,7 @@ describes.
 - **claude.ai URL:** https://claude.ai/code/routines/trig_01Xj3TEq1YPMrSyMgUhUK3QE
 - **Trigger:** UI "Run post-mortem" button on Insights tab → `POST /api/run-postmortem`. Manual-only (no cron).
 - **App entry point:** [`app/api/run-postmortem/route.ts`](../app/api/run-postmortem/route.ts)
-- **Prompt version:** v1
+- **Prompt version:** v2 (dedup against existing dislike patterns; confidence increment on existing patterns instead of duplicate inserts; short-circuit when <2 kills in window; callback POST wired)
 - **Pending update:** none
 
 **Reads:**
