@@ -29,21 +29,21 @@ describes.
 - **claude.ai URL:** https://claude.ai/code/routines/trig_01SFyDUpCQk8qrYYhJrKVjdD
 - **Trigger:** Vercel Cron (`vercel.json` → `/api/run-generator`, daily 04:00 UTC) AND UI "Run now" button (top of dashboard)
 - **App entry point:** [`app/api/run-generator/route.ts`](../app/api/run-generator/route.ts)
-- **Prompt version:** v1 (3-ideas-per-run with bracket alternation only)
-- **Pending update:** v2 — rotates across domain × GTM × positioning per run (see commit history / chat)
+- **Prompt version:** v1 (3 ideas/run with bracket alternation only)
+- **Pending update:** v2.1 — 5 ideas/run, rotates across domain × GTM × positioning per run, realistic brackets ($500–2K side / $3–8K real, month-12 MRR target), 8 hard exclusions, callback POST wired
 
 **Reads:**
 - `ideas` — recent titles (last 60 days) for dedup; `killed` titles + `kill_reason` for negative learning; most recent `income_bracket` to alternate
 - `feedback_patterns` — likes (lean toward) + dislikes (avoid)
 
 **Writes:**
-- 3 new rows to `ideas` with `status = 'new'`, `income_bracket` set, tags include cell tuple `[domain, gtm_style, positioning]`
+- 5 new rows to `ideas` with `status = 'new'`, `income_bracket` set, tags include cell tuple `[domain, gtm_style, positioning]`
 
 **Callback:** `POST /api/routine-runs/{run_id}/complete` with `{status:'completed', summary, idea_ids:[…]}`
 
 **Known issues:**
-- v1 prompt's bracket alternation defaulted to `business` when `income_bracket` was null on the most recent row. Fixed in v2 (defaults to `lifestyle` on null).
-- v1 produced same archetype 3× per run. v2 forces 3 different cells.
+- v1 prompt's bracket alternation defaulted to `business` when `income_bracket` was null on the most recent row. Fixed in v2.1 (defaults to `lifestyle` on null).
+- v1 produced same archetype 3× per run. v2.1 forces 5 different cells.
 
 ---
 
