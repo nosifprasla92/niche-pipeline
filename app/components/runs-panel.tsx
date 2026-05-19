@@ -11,8 +11,17 @@ const FAILED: RoutineRunStatus[] = ["error", "fire_failed", "timed_out"];
 
 function computeDotColor(runs: RoutineRun[]): DotColor {
   if (runs.length === 0) return "gray";
+  const byRoutine = new Map<string, RoutineRun[]>();
+  for (const r of runs) {
+    const list = byRoutine.get(r.routine_name) ?? [];
+    list.push(r);
+    byRoutine.set(r.routine_name, list);
+  }
+  for (const list of byRoutine.values()) {
+    const lastFinished = list.find((r) => !IN_FLIGHT.includes(r.status));
+    if (lastFinished && FAILED.includes(lastFinished.status)) return "red";
+  }
   if (runs.some((r) => IN_FLIGHT.includes(r.status))) return "yellow";
-  if (FAILED.includes(runs[0].status)) return "red";
   return "green";
 }
 
@@ -30,11 +39,18 @@ function dotClasses(c: DotColor): string {
 }
 
 function dotTitle(c: DotColor, runs: RoutineRun[]): string {
+  if (c === "red") {
+    const failed = runs.find(
+      (r) => !IN_FLIGHT.includes(r.status) && FAILED.includes(r.status),
+    );
+    return failed
+      ? `Most recent ${failed.routine_name} run failed (${failed.status})`
+      : "A routine failed recently";
+  }
   if (c === "yellow") {
     const inFlight = runs.find((r) => IN_FLIGHT.includes(r.status));
     return `${inFlight?.routine_name} routine in flight`;
   }
-  if (c === "red") return `Most recent run errored (${runs[0].routine_name})`;
   if (c === "green") return "All routines healthy";
   return "No runs yet";
 }

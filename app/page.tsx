@@ -2,7 +2,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, formatDate } from "@/lib/fetcher";
-import { Idea } from "@/lib/supabase";
+import { Idea, RoutineRun } from "@/lib/supabase";
 import { TabInbox } from "./components/tab-inbox";
 import { TabResearching } from "./components/tab-researching";
 import { TabValidating } from "./components/tab-validating";
@@ -11,6 +11,16 @@ import { TabArchive } from "./components/tab-archive";
 import { TabInsights } from "./components/tab-insights";
 import { RunsPanel } from "./components/runs-panel";
 import { ConflictToast, type Conflict } from "./components/conflict-toast";
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return `${Math.floor(hr / 24)}d ago`;
+}
 
 const TABS = [
   { id: "inbox", label: "Inbox" },
@@ -50,6 +60,14 @@ export default function Home() {
   const { data: allData } = useSWR<{ ideas: Idea[] }>("/api/ideas", fetcher, {
     refreshInterval: 30000,
   });
+  const { data: runsData } = useSWR<{ runs: RoutineRun[] }>(
+    "/api/routine-runs?limit=20",
+    fetcher,
+    { refreshInterval: 30000 },
+  );
+  const inFlight = runsData?.runs?.find((r) =>
+    ["triggered", "accepted"].includes(r.status),
+  );
 
   const lastNew = inboxData?.ideas?.[0];
   const allIdeas = allData?.ideas ?? [];
@@ -107,9 +125,18 @@ export default function Home() {
       <header className="flex items-start justify-between mb-10">
         <div>
           <h1 className="font-display text-4xl tracking-tight">Niche pipeline</h1>
-          <p className="font-mono text-xs text-muted mt-2 uppercase tracking-wider">
-            {subtitle}
-          </p>
+          {inFlight ? (
+            <p className="font-mono text-xs mt-2 uppercase tracking-wider flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-warning animate-pulse" />
+              <span className="text-warning">
+                {inFlight.routine_name} running · started {timeAgo(inFlight.started_at)}
+              </span>
+            </p>
+          ) : (
+            <p className="font-mono text-xs text-muted mt-2 uppercase tracking-wider">
+              {subtitle}
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-3">
