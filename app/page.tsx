@@ -60,6 +60,12 @@ export default function Home() {
     totalIdeas: allIdeas.length,
     ideasThisMonth,
   });
+  const pendingCounts: Partial<Record<TabId, number>> = {
+    inbox: allIdeas.filter((i) => i.status === "new").length,
+    researching: allIdeas.filter((i) => i.status === "researched").length,
+    validating: allIdeas.filter((i) => i.status === "validated").length,
+    plans: allIdeas.filter((i) => i.status === "plan_ready").length,
+  };
 
   async function runNow() {
     setRunning(true);
@@ -121,19 +127,30 @@ export default function Home() {
       </header>
 
       <nav className="flex gap-1 mb-8 border-b border-border">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t.id
-                ? "border-text text-text"
-                : "border-transparent text-muted hover:text-text"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const count = pendingCounts[t.id] ?? 0;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                tab === t.id
+                  ? "border-text text-text"
+                  : "border-transparent text-muted hover:text-text"
+              }`}
+            >
+              {t.label}
+              {count > 0 && (
+                <span
+                  className="ml-1.5 font-mono text-[0.6875rem] px-1.5 py-0.5 rounded-sm bg-border text-text"
+                  aria-label={`${count} pending`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
       <main>
