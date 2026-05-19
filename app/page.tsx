@@ -80,6 +80,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [runningPm, setRunningPm] = useState(false);
+  const [pmError, setPmError] = useState<string | null>(null);
+  const [pmConflict, setPmConflict] = useState<Conflict | null>(null);
+  const [pmCancelling, setPmCancelling] = useState(false);
   const { data: inboxData } = useSWR<{ ideas: Idea[] }>("/api/ideas?status=new", fetcher, {
     refreshInterval: 30000,
   });
@@ -148,6 +152,41 @@ export default function Home() {
     }
   }
 
+  async function runPostmortem() {
+    setRunningPm(true);
+    setPmError(null);
+    try {
+      const r = await fetch("/api/run-postmortem", { method: "POST" });
+      if (r.status === 409) {
+        const body = await r.json();
+        setPmConflict(body.conflict);
+        return;
+      }
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        setPmError(body.error || `HTTP ${r.status}`);
+      }
+    } finally {
+      setRunningPm(false);
+    }
+  }
+
+  async function cancelAndRerunPm() {
+    if (!pmConflict?.run_id) return;
+    setPmCancelling(true);
+    try {
+      await fetch("/api/cancel-run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ run_id: pmConflict.run_id }),
+      });
+      setPmConflict(null);
+      await runPostmortem();
+    } finally {
+      setPmCancelling(false);
+    }
+  }
+
   return (
     <div className="min-h-screen max-w-5xl mx-auto px-6 py-8">
       <header className="flex items-start justify-between mb-10">
@@ -170,6 +209,14 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <RunsPanel open={runsOpen} onOpenChange={setRunsOpen} />
             <button
+              onClick={runPostmortem}
+              disabled={runningPm}
+              title="Cluster killed-idea reasons from the last 14 days into new dislike patterns"
+              className="px-3 py-1.5 text-sm rounded-md border border-border text-muted hover:text-text hover:bg-border/60 disabled:opacity-50"
+            >
+              {runningPm ? "Running…" : "Run post-mortem"}
+            </button>
+            <button
               onClick={runNow}
               disabled={running}
               className="px-3 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/60 disabled:opacity-50"
@@ -178,6 +225,7 @@ export default function Home() {
             </button>
           </div>
           {error && <span className="text-xs text-error">{error}</span>}
+          {pmError && <span className="text-xs text-error">{pmError}</span>}
         </div>
       </header>
 
@@ -247,6 +295,16 @@ export default function Home() {
           cancelling={cancelling}
           onCancel={cancelAndRetry}
           onDismiss={() => setConflict(null)}
+        />
+      )}
+      {pmConflict && (
+        <ConflictToast
+          message="The post-mortem routine is already running. Cancel that run and start a new one?"
+          cancelLabel="Cancel running and re-fire"
+          canCancel={pmConflict.run_id != null}
+          cancelling={pmCancelling}
+          onCancel={cancelAndRerunPm}
+          onDismiss={() => setPmConflict(null)}
         />
       )}
     </div>
