@@ -23,17 +23,43 @@ const TABS = [
 
 type TabId = typeof TABS[number]["id"];
 
+function headerSubtitle({
+  lastNew,
+  totalIdeas,
+  ideasThisMonth,
+}: {
+  lastNew: Idea | undefined;
+  totalIdeas: number;
+  ideasThisMonth: number;
+}): string {
+  const schedule = "daily at 8:00 AM";
+  if (lastNew) return `Last idea ${formatDate(lastNew.created_at)} · ${schedule}`;
+  if (totalIdeas > 0) return `Inbox empty · ${ideasThisMonth} ideas this month · next run 8:00 AM`;
+  return `Waiting for first run · ${schedule}`;
+}
+
 export default function Home() {
   const [tab, setTab] = useState<TabId>("inbox");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [cancelling, setCancelling] = useState(false);
-  const { data } = useSWR<{ ideas: Idea[] }>("/api/ideas?status=new", fetcher, {
+  const { data: inboxData } = useSWR<{ ideas: Idea[] }>("/api/ideas?status=new", fetcher, {
+    refreshInterval: 30000,
+  });
+  const { data: allData } = useSWR<{ ideas: Idea[] }>("/api/ideas", fetcher, {
     refreshInterval: 30000,
   });
 
-  const lastNew = data?.ideas?.[0];
+  const lastNew = inboxData?.ideas?.[0];
+  const allIdeas = allData?.ideas ?? [];
+  const monthAgo = Date.now() - 30 * 86400000;
+  const ideasThisMonth = allIdeas.filter((i) => Date.parse(i.created_at) > monthAgo).length;
+  const subtitle = headerSubtitle({
+    lastNew,
+    totalIdeas: allIdeas.length,
+    ideasThisMonth,
+  });
 
   async function runNow() {
     setRunning(true);
@@ -76,10 +102,7 @@ export default function Home() {
         <div>
           <h1 className="font-display text-4xl tracking-tight">Niche pipeline</h1>
           <p className="font-mono text-xs text-muted mt-2 uppercase tracking-wider">
-            {lastNew
-              ? `Last idea ${formatDate(lastNew.created_at)}`
-              : "Waiting for first run"}
-            {" · daily at 8:00 AM"}
+            {subtitle}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
