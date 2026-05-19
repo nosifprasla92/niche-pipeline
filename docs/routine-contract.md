@@ -10,6 +10,31 @@ The dashboard side ships in this repo. The routine side lives at
 repo — and must be updated by hand following the deploy runbook at the end
 of this doc.
 
+## Idea row shape (post v1.x — for Generator and Researcher prompt updates)
+
+The `ideas` table's free-text "insight" fields use a structured array shape
+introduced by migration `0002_idea_insights_jsonb` (2026-05-19):
+
+```ts
+type InsightPoint = { text: string; important?: boolean };
+
+// Columns in the ideas table, both jsonb NOT NULL:
+why_it_works: InsightPoint[]      // 3–6 bullets, at most one important
+devils_advocate: InsightPoint[]   // 3–6 bullets, at most one important
+```
+
+When emitting these from a routine prompt, output JSON arrays — not prose
+paragraphs. The UI renders each array as a scannable bullet list and
+visually emphasizes any bullet with `important: true` (italic, medium
+weight). Mark AT MOST ONE bullet per field as important — the single
+strongest claim a busy reader must not miss. If nothing stands out, mark
+none.
+
+Other free-text fields on the `ideas` row (`description`,
+`competitor_complaints`, `competition_analysis`, `effort_breakdown`,
+`zero_paid_path`, `landing_copy`, `interview_questions`, `ad_test_plan`,
+`validation_signals`, `kill_reason`) remain plain `text` columns.
+
 ## Routines at a glance
 
 | # | Name        | Trigger                                                 | Idea status transitions          |

@@ -16,7 +16,7 @@ describes.
 
 | # | Routine | Env vars | Fired by | Last edited | Status |
 |---|---|---|---|---|---|
-| 1 | Generator | `GENERATOR_ROUTINE_ID` + `GENERATOR_TRIGGER_TOKEN` | Vercel Cron daily 04:00 UTC + UI "Run now" | 2026-05-19 (v2.1) | ✅ v2.1 — 5 ideas/run, 5-cell rotation, realistic brackets |
+| 1 | Generator | `GENERATOR_ROUTINE_ID` + `GENERATOR_TRIGGER_TOKEN` | Vercel Cron daily 04:00 UTC + UI "Run now" | 2026-05-19 (v2.1) | ⚠ v3 pending — emit `why_it_works`/`devils_advocate` as structured bullet arrays |
 | 2 | Researcher | `DEEP_RESEARCH_ROUTINE_ID` + `DEEP_RESEARCH_TRIGGER_TOKEN` | UI "Pursue" on a `new` idea | 2026-05-19 (v2) | ✅ v2 — bracket-aware auto-kill thresholds |
 | 3 | Validator | `VALIDATE_ROUTINE_ID` + `VALIDATE_TRIGGER_TOKEN` | UI "Send to validation" on a `researched` idea | 2026-05-19 (v2) | ✅ v2 — untested end-to-end |
 | 4 | Planner | `PLAN_ROUTINE_ID` + `PLAN_TRIGGER_TOKEN` | UI "Approve plan" on a `validated` idea | 2026-05-19 (v2) | ✅ v2 — untested end-to-end |
@@ -30,7 +30,31 @@ describes.
 - **Trigger:** Vercel Cron (`vercel.json` → `/api/run-generator`, daily 04:00 UTC) AND UI "Run now" button (top of dashboard)
 - **App entry point:** [`app/api/run-generator/route.ts`](../app/api/run-generator/route.ts)
 - **Prompt version:** v2.1 (5 ideas/run, 5-cell rotation across domain × GTM × positioning, realistic brackets $500–2K side / $3–8K real with month-12 MRR target, 8 hard exclusions, callback POST wired)
-- **Pending update:** none
+- **Pending update (v3):** Migration `0002_idea_insights_jsonb` (2026-05-19) changed `ideas.why_it_works` and `ideas.devils_advocate` from `text` to `jsonb`. The new shape is `InsightPoint[]` where each point is `{text: string, important?: boolean}`. The v2.1 prompt still emits prose strings; existing rows were backfilled as single-bullet arrays with `important: false`, so reads keep working, but new rows from v2.1 will continue to be single-bullet walls of text. Update the prompt so each field is 3–6 short bullets and AT MOST ONE bullet is marked `important: true` (the single most-decisive claim). Diff for paste-in:
+
+  ```
+  Replace the existing "Output format" section's why_it_works / devils_advocate
+  fields with:
+
+    "why_it_works": [
+      {"text": "<one short claim>", "important": false},
+      {"text": "<one short claim>", "important": false},
+      {"text": "<the single strongest claim>", "important": true},
+      {"text": "<one short claim>", "important": false}
+    ],
+    "devils_advocate": [
+      {"text": "<one short objection>", "important": false},
+      {"text": "<the single strongest objection>", "important": true},
+      {"text": "<one short objection>", "important": false}
+    ]
+
+  Rules:
+  - 3–6 bullets per field. Each bullet is one sentence, ideally under 30 words.
+  - Mark AT MOST ONE bullet per field as important. Pick the one a busy reader
+    must not miss. If no single bullet stands out, mark none.
+  - Bullets are claims, not transitions. No "however", "additionally", "this
+    means that". Each bullet stands alone.
+  ```
 
 **Reads:**
 - `ideas` — recent titles (last 60 days) for dedup; `killed` titles + `kill_reason` for negative learning; most recent `income_bracket` to alternate

@@ -6,6 +6,7 @@ import { Idea } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 import { ConflictToast, type Conflict } from "./conflict-toast";
+import { InsightList } from "./insight-list";
 
 export function TabInbox() {
   const { data, mutate } = useSWR<{ ideas: Idea[] }>("/api/ideas?status=new", fetcher, {
@@ -114,12 +115,12 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
         </div>
       )}
       <div className="mb-4">
-        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Why this works</div>
-        <p className="text-sm leading-relaxed">{idea.why_it_works}</p>
+        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">Why this works</div>
+        <InsightList points={idea.why_it_works} />
       </div>
       <div className="mb-5">
-        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Devil&rsquo;s advocate</div>
-        <p className="text-sm leading-relaxed">{idea.devils_advocate}</p>
+        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">Devil&rsquo;s advocate</div>
+        <InsightList points={idea.devils_advocate} />
       </div>
 
       {!killing ? (

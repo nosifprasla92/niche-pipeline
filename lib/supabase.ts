@@ -24,6 +24,11 @@ export type Status =
 
 export type IncomeBracket = "lifestyle" | "business";
 
+export type InsightPoint = {
+  text: string;
+  important?: boolean;
+};
+
 export type Idea = {
   id: number;
   created_at: string;
@@ -31,8 +36,8 @@ export type Idea = {
   title: string;
   description: string;
   tags: string[] | null;
-  why_it_works: string;
-  devils_advocate: string;
+  why_it_works: InsightPoint[];
+  devils_advocate: InsightPoint[];
   status: Status;
   income_bracket: IncomeBracket | null;
 
