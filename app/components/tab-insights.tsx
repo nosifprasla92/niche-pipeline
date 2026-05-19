@@ -16,6 +16,7 @@ export function TabInsights() {
   });
   const [newPattern, setNewPattern] = useState("");
   const [newType, setNewType] = useState<"like" | "dislike">("dislike");
+  const [adding, setAdding] = useState(false);
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<Conflict | null>(null);
@@ -54,6 +55,7 @@ export function TabInsights() {
       body: JSON.stringify({ pattern_type: newType, pattern: newPattern.trim() }),
     });
     setNewPattern("");
+    setAdding(false);
     mutateP();
   }
 
@@ -97,40 +99,22 @@ export function TabInsights() {
     }
   }
 
-  return (
-    <div className="space-y-6 max-w-[720px]">
-      <div className="grid grid-cols-4 gap-3">
-        <Stat label="Suggested (30d)" value={suggested} />
-        <Stat label="Pursued" value={pursued} />
-        <Stat label="Validated" value={validated} />
-        <Stat label="Launched" value={launched} />
-      </div>
+  const funnelMoved = pursued + validated + launched > 0;
 
-      <div className="border border-border rounded-md p-4 bg-surface">
-        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">Add pattern</div>
-        <div className="flex gap-2">
-          <select
-            value={newType}
-            onChange={(e) => setNewType(e.target.value as "like" | "dislike")}
-            className="text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
-          >
-            <option value="dislike">Dislike</option>
-            <option value="like">Like</option>
-          </select>
-          <input
-            value={newPattern}
-            onChange={(e) => setNewPattern(e.target.value)}
-            placeholder="e.g. avoid anything with physical inventory"
-            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
-          />
-          <button
-            onClick={addPattern}
-            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
-          >
-            Add
-          </button>
+  return (
+    <div className="space-y-8 max-w-[720px]">
+      {funnelMoved ? (
+        <div className="grid grid-cols-4 gap-3">
+          <Stat label="Suggested (30d)" value={suggested} />
+          <Stat label="Pursued" value={pursued} />
+          <Stat label="Validated" value={validated} />
+          <Stat label="Launched" value={launched} />
         </div>
-      </div>
+      ) : suggested > 0 ? (
+        <div className="font-mono text-xs text-muted uppercase tracking-wider">
+          Last 30 days · {suggested} suggested · none pursued yet
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-4">
         <PatternColumn
@@ -147,29 +131,66 @@ export function TabInsights() {
         />
       </div>
 
-      <div className="border border-border rounded-md p-4 bg-surface">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1">
-              Post-mortem
-            </div>
-            <p className="text-sm text-text/90 leading-relaxed">
-              Cluster killed-idea reasons from the last 14 days into new dislike
-              patterns. Run after you&rsquo;ve killed a few ideas.
-            </p>
-            {runError && (
-              <div className="font-mono text-xs text-error mt-2">{runError}</div>
-            )}
-          </div>
-          <button
-            onClick={runPostmortem}
-            disabled={running}
-            className="shrink-0 px-3 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/60 disabled:opacity-50 transition-colors"
+      {!adding ? (
+        <button
+          onClick={() => setAdding(true)}
+          className="text-sm text-muted hover:text-text transition-colors"
+        >
+          + Add pattern
+        </button>
+      ) : (
+        <div className="flex gap-2 items-center">
+          <select
+            value={newType}
+            onChange={(e) => setNewType(e.target.value as "like" | "dislike")}
+            className="text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           >
-            {running ? "Running…" : "Run post-mortem"}
+            <option value="dislike">Dislike</option>
+            <option value="like">Like</option>
+          </select>
+          <input
+            autoFocus
+            value={newPattern}
+            onChange={(e) => setNewPattern(e.target.value)}
+            placeholder="e.g. avoid anything with physical inventory"
+            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
+          />
+          <button
+            onClick={addPattern}
+            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
+          >
+            Add
+          </button>
+          <button
+            onClick={() => {
+              setAdding(false);
+              setNewPattern("");
+            }}
+            className="text-sm text-muted hover:text-text"
+          >
+            Cancel
           </button>
         </div>
+      )}
+
+      <div className="pt-4 border-t border-border flex items-center justify-between gap-4">
+        <span
+          className="text-xs text-muted"
+          title="Cluster killed-idea reasons from the last 14 days into new dislike patterns."
+        >
+          Post-mortem clusters killed-idea reasons into new dislike patterns.
+        </span>
+        <button
+          onClick={runPostmortem}
+          disabled={running}
+          className="shrink-0 text-sm text-muted hover:text-text disabled:opacity-50 transition-colors"
+        >
+          {running ? "Running…" : "Run post-mortem →"}
+        </button>
       </div>
+      {runError && (
+        <div className="font-mono text-xs text-error">{runError}</div>
+      )}
 
       {conflict && (
         <ConflictToast
