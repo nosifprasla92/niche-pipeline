@@ -18,6 +18,25 @@ import { ConflictToast, type Conflict } from "./components/conflict-toast";
 
 type FailingRoutine = { routine: string; count: number };
 
+const COMPLETION_WINDOW_DAYS = 14;
+
+function completionStats(runs: RoutineRun[]): {
+  completed: number;
+  finished: number;
+} {
+  const cutoff = Date.now() - COMPLETION_WINDOW_DAYS * 86400000;
+  let completed = 0;
+  let finished = 0;
+  for (const r of runs) {
+    if (Date.parse(r.started_at) <= cutoff) continue;
+    if (IN_FLIGHT_STATUSES.includes(r.status)) continue;
+    if (r.status === "cancelled") continue;
+    finished++;
+    if (r.status === "completed") completed++;
+  }
+  return { completed, finished };
+}
+
 function failingRoutines(runs: RoutineRun[], min = 2): FailingRoutine[] {
   const byRoutine = new Map<string, RoutineRun[]>();
   for (const r of runs) {
@@ -99,6 +118,7 @@ export default function Home() {
     IN_FLIGHT_STATUSES.includes(r.status),
   );
   const failing = failingRoutines(runsData?.runs ?? []);
+  const completion = completionStats(runsData?.runs ?? []);
   const [runsOpen, setRunsOpen] = useState(false);
 
   const lastNew = inboxData?.ideas?.[0];
@@ -202,6 +222,18 @@ export default function Home() {
           ) : (
             <p className="font-mono text-xs text-muted mt-2 uppercase tracking-wider">
               {subtitle}
+            </p>
+          )}
+          {completion.finished > 0 && (
+            <p
+              className={`font-mono text-xs mt-1 uppercase tracking-wider ${
+                completion.completed / completion.finished < 0.5
+                  ? "text-error"
+                  : "text-muted"
+              }`}
+            >
+              {completion.completed}/{completion.finished} completed · last{" "}
+              {COMPLETION_WINDOW_DAYS}d
             </p>
           )}
         </div>

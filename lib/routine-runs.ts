@@ -5,13 +5,41 @@ import {
   type RoutineRunStatus,
   type TriggeredBy,
 } from "./supabase";
+import { logEvent } from "./log";
 
 const IN_FLIGHT_STATUSES: RoutineRunStatus[] = ["triggered", "accepted"];
+
+export const ROUTINE_TIMEOUT_MINUTES = 30;
 
 export type InsertResult =
   | { ok: true; id: number }
   | { ok: false; conflict: true }
   | { ok: false; error: string };
+
+type SweptRow = { id: number; routine_name: RoutineName; started_at: string };
+
+export type SweepResult =
+  | { ok: true; swept: SweptRow[] }
+  | { ok: false; error: string };
+
+/**
+ * Update any 'accepted' rows older than ROUTINE_TIMEOUT_MINUTES to 'timed_out'.
+ * Used by both the scheduled sweeper endpoint and lazy auto-sweep in
+ * insertTriggered (so stale rows don't block triggers between cron sweeps).
+ */
+export async function sweepStaleRuns(): Promise<SweepResult> {
+  const cutoff = new Date(
+    Date.now() - ROUTINE_TIMEOUT_MINUTES * 60_000,
+  ).toISOString();
+  const { data, error } = await supabase
+    .from("routine_runs")
+    .update({ status: "timed_out", finished_at: new Date().toISOString() })
+    .eq("status", "accepted")
+    .lt("started_at", cutoff)
+    .select("id, routine_name, started_at");
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, swept: (data ?? []) as SweptRow[] };
+}
 
 /**
  * INSERT a new routine_runs row with status='triggered'.
@@ -26,6 +54,28 @@ export async function insertTriggered(
   triggeredBy: TriggeredBy,
   ideaContextId: number | null,
 ): Promise<InsertResult> {
+  // Lazy auto-sweep: the cron sweeper only runs daily, so stale 'accepted'
+  // rows can block triggers for hours in between. Sweep before claiming the
+  // in-flight slot so we don't 409 on a row that's already past its timeout.
+  const sweep = await sweepStaleRuns();
+  if (sweep.ok && sweep.swept.length > 0) {
+    logEvent("warn", "sweep.before_trigger", {
+      routine: routineName,
+      triggered_by: triggeredBy,
+      count: sweep.swept.length,
+      runs: sweep.swept.map((s) => ({
+        run_id: s.id,
+        routine: s.routine_name,
+        started_at: s.started_at,
+      })),
+    });
+  } else if (!sweep.ok) {
+    logEvent("error", "sweep.before_trigger.failed", {
+      routine: routineName,
+      message: sweep.error,
+    });
+  }
+
   const { data, error } = await supabase
     .from("routine_runs")
     .insert({
