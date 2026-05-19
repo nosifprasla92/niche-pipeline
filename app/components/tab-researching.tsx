@@ -36,31 +36,36 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
   const [cancelling, setCancelling] = useState(false);
 
   async function killPursuing() {
-    // Cancel the in-flight researcher run first so the UNIQUE invariant
-    // doesn't permanently wedge this routine. cancel-run reverts the idea
-    // to 'new'; the subsequent update-idea then moves it to 'killed'.
-    // Tolerant of 404 — if no in-flight run exists (drift between idea
-    // status and routine_runs), the update-idea below will still kill the
-    // idea correctly.
-    await fetch("/api/cancel-run", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ idea_id: idea.id }),
-    });
-    await fetch("/api/update-idea", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        id: idea.id,
-        patch: {
-          status: "killed",
-          kill_reason: reason || "cancelled during research",
-          killed_at: new Date().toISOString(),
-        },
-        feedback: reason ? { pattern_type: "dislike", pattern: reason } : undefined,
-      }),
-    });
-    onChange();
+    setBusy(true);
+    try {
+      // Cancel the in-flight researcher run first so the UNIQUE invariant
+      // doesn't permanently wedge this routine. cancel-run reverts the idea
+      // to 'new'; the subsequent update-idea then moves it to 'killed'.
+      // Tolerant of 404 — if no in-flight run exists (drift between idea
+      // status and routine_runs), the update-idea below will still kill the
+      // idea correctly.
+      await fetch("/api/cancel-run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idea_id: idea.id }),
+      });
+      await fetch("/api/update-idea", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: idea.id,
+          patch: {
+            status: "killed",
+            kill_reason: reason || "cancelled during research",
+            killed_at: new Date().toISOString(),
+          },
+          feedback: reason ? { pattern_type: "dislike", pattern: reason } : undefined,
+        }),
+      });
+      onChange();
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (idea.status === "pursuing") {
@@ -93,7 +98,8 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
             />
             <button
               onClick={killPursuing}
-              className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
+              disabled={busy}
+              className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               Confirm
             </button>
@@ -142,20 +148,25 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
   }
 
   async function killResearched() {
-    await fetch("/api/update-idea", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        id: idea.id,
-        patch: {
-          status: "killed",
-          kill_reason: reason,
-          killed_at: new Date().toISOString(),
-        },
-        feedback: reason ? { pattern_type: "dislike", pattern: reason } : undefined,
-      }),
-    });
-    onChange();
+    setBusy(true);
+    try {
+      await fetch("/api/update-idea", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: idea.id,
+          patch: {
+            status: "killed",
+            kill_reason: reason,
+            killed_at: new Date().toISOString(),
+          },
+          feedback: reason ? { pattern_type: "dislike", pattern: reason } : undefined,
+        }),
+      });
+      onChange();
+    } finally {
+      setBusy(false);
+    }
   }
 
   const conflictTitle = conflict?.idea_title ?? "another idea";
@@ -217,7 +228,8 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
           />
           <button
             onClick={killResearched}
-            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
+            disabled={busy}
+            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             Confirm
           </button>
@@ -250,12 +262,12 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children?: React.ReactNode }) {
   if (!children) return null;
   return (
     <div className="mb-4">
       <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">{title}</div>
-      <p className="text-sm leading-relaxed">{children}</p>
+      <p className="text-sm leading-relaxed whitespace-pre-wrap">{children}</p>
     </div>
   );
 }
