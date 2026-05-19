@@ -1,16 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/run-generator",
-      "schedule": "0 4 * * *"
-    },
-    {
       "path": "/api/sweep-runs",
       "schedule": "30 4 * * *"
-    },
-    {
-      "path": "/api/run-postmortem",
-      "schedule": "0 5 * * 1"
     }
   ]
 }
