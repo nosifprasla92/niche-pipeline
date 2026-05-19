@@ -20,13 +20,13 @@ describes.
 | 2 | Researcher | `DEEP_RESEARCH_ROUTINE_ID` + `DEEP_RESEARCH_TRIGGER_TOKEN` | UI "Pursue" on a `new` idea | 2026-05-19 | ✅ working |
 | 3 | Validator | `VALIDATE_ROUTINE_ID` + `VALIDATE_TRIGGER_TOKEN` | UI "Send to validation" on a `researched` idea | 2026-05-19 | ✅ working (untested end-to-end) |
 | 4 | Planner | `PLAN_ROUTINE_ID` + `PLAN_TRIGGER_TOKEN` | UI "Approve plan" on a `validated` idea | 2026-05-19 | ✅ working (untested end-to-end) |
-| 5 | Post-mortem | `POSTMORTEM_ROUTINE_ID` + `POSTMORTEM_TRIGGER_TOKEN` | UI "Run post-mortem" on Insights tab | 2026-05-19 | ⚠️ token missing in `.env.local` and Vercel — must mint API trigger |
+| 5 | Post-mortem | `POSTMORTEM_ROUTINE_ID` + `POSTMORTEM_TRIGGER_TOKEN` | UI "Run post-mortem" on Insights tab | 2026-05-19 | ✅ working (untested end-to-end) |
 
 ---
 
 ## 1. Generator
 
-- **claude.ai URL:** _paste once minted; check at /code/routines_
+- **claude.ai URL:** https://claude.ai/code/routines/trig_01SFyDUpCQk8qrYYhJrKVjdD
 - **Trigger:** Vercel Cron (`vercel.json` → `/api/run-generator`, daily 04:00 UTC) AND UI "Run now" button (top of dashboard)
 - **App entry point:** [`app/api/run-generator/route.ts`](../app/api/run-generator/route.ts)
 - **Prompt version:** v1 (3-ideas-per-run with bracket alternation only)
@@ -49,7 +49,7 @@ describes.
 
 ## 2. Researcher
 
-- **claude.ai URL:** _paste once minted_
+- **claude.ai URL:** https://claude.ai/code/routines/trig_01CSaYWLaLJ3ZJ1359FDj4Ry
 - **Trigger:** UI "Pursue" button on an Inbox card → `POST /api/trigger-research` → sets idea to `pursuing`, fires routine
 - **App entry point:** [`app/api/trigger-research/route.ts`](../app/api/trigger-research/route.ts)
 - **Prompt version:** v1
@@ -77,7 +77,7 @@ describes.
 
 ## 3. Validator (new in 5-routine refactor)
 
-- **claude.ai URL:** _paste once minted_
+- **claude.ai URL:** https://claude.ai/code/routines/trig_01QDwqYxk4asECd3SnPzHky7
 - **Trigger:** UI "Send to validation" button on a `researched` Researching card → `POST /api/trigger-validate` → sets idea to `validating`, fires routine
 - **App entry point:** [`app/api/trigger-validate/route.ts`](../app/api/trigger-validate/route.ts)
 - **Prompt version:** v1
@@ -99,7 +99,7 @@ describes.
 
 ## 4. Planner
 
-- **claude.ai URL:** _paste once minted_
+- **claude.ai URL:** https://claude.ai/code/routines/trig_01SEb3SFVpCgmagqBLxaaCGj
 - **Trigger:** UI "Approve plan" button on a `validated` Validating card → `POST /api/trigger-plan` → sets idea to `planning`, fires routine
 - **App entry point:** [`app/api/trigger-plan/route.ts`](../app/api/trigger-plan/route.ts)
 - **Prompt version:** v1 (updated for validation gate)
@@ -120,7 +120,7 @@ describes.
 
 ## 5. Post-mortem (new in 5-routine refactor)
 
-- **claude.ai URL:** _paste once minted_
+- **claude.ai URL:** https://claude.ai/code/routines/trig_01Xj3TEq1YPMrSyMgUhUK3QE
 - **Trigger:** UI "Run post-mortem" button on Insights tab → `POST /api/run-postmortem`. Manual-only (no cron).
 - **App entry point:** [`app/api/run-postmortem/route.ts`](../app/api/run-postmortem/route.ts)
 - **Prompt version:** v1
@@ -135,8 +135,7 @@ describes.
 
 **Callback:** `POST /api/routine-runs/{run_id}/complete` with summary like `"Clustered N killed ideas into M dislike patterns"`
 
-**Known issues:**
-- ⚠️ `POSTMORTEM_TRIGGER_TOKEN` not yet minted. The routine ID exists at claude.ai but no API trigger token. Until minted + pasted into `.env.local` line 18 AND Vercel env, the "Run post-mortem" button returns `fire_failed: Routine ID or token missing`.
+**Known issues:** untested with real killed-idea clusters.
 
 ---
 
