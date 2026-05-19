@@ -164,6 +164,45 @@ function RunsDrawer({
   );
 }
 
+function humanizeError(raw: string): { primary: string; raw: string } {
+  try {
+    const parsed = JSON.parse(raw);
+    const msg =
+      parsed?.error?.message ??
+      parsed?.message ??
+      (typeof parsed?.error === "string" ? parsed.error : null);
+    if (msg) {
+      const type = parsed?.error?.type ?? parsed?.type;
+      const code = parsed?.error?.code ?? parsed?.code;
+      const tag = type && type !== "error" ? ` (${type})` : code ? ` (${code})` : "";
+      return { primary: `${msg}${tag}`, raw };
+    }
+  } catch {
+    // not JSON, fall through
+  }
+  return { primary: raw, raw };
+}
+
+function ErrorBlock({ message }: { message: string }) {
+  const { primary, raw } = humanizeError(message);
+  const showRaw = raw !== primary;
+  return (
+    <div className="mt-1">
+      <div className="text-xs text-error leading-relaxed">{primary}</div>
+      {showRaw && (
+        <details className="mt-1">
+          <summary className="font-mono text-[0.6875rem] text-muted cursor-pointer hover:text-text select-none">
+            Raw payload
+          </summary>
+          <pre className="font-mono text-[0.6875rem] text-muted mt-1 whitespace-pre-wrap break-all">
+            {raw}
+          </pre>
+        </details>
+      )}
+    </div>
+  );
+}
+
 function RunRow({ run }: { run: RoutineRun }) {
   const dur = duration(run.started_at, run.finished_at);
   return (
@@ -186,11 +225,7 @@ function RunRow({ run }: { run: RoutineRun }) {
           {run.summary}
         </div>
       )}
-      {run.error_message && (
-        <div className="font-mono text-xs text-error mt-1">
-          {run.error_message}
-        </div>
-      )}
+      {run.error_message && <ErrorBlock message={run.error_message} />}
     </div>
   );
 }
