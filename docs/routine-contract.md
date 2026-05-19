@@ -1,9 +1,13 @@
 # Routine ↔ Dashboard Contract
 
 This document describes the HTTP contract that Claude Cloud Routines use to
-talk back to the niche-pipeline dashboard. Each of the five routines
-(Generator, Researcher, Validator, Planner, Post-mortem) must implement this
-contract for the observability and feedback-wiring features.
+talk back to the niche-pipeline dashboard. Four of the five routines
+(Generator, Researcher, Validator, Planner) must implement this contract for
+the observability and feedback-wiring features. **Post-mortem no longer uses
+this contract** — as of 2026-05-19 it runs in-process in the Next.js app
+(see [routines.md §5](./routines.md#5-post-mortem-in-repo-not-a-cloud-routine)).
+The Post-mortem section later in this doc is preserved for historical
+reference only.
 
 The dashboard side ships in this repo. The routine side lives at
 [claude.ai/code/routines](https://claude.ai/code/routines) — outside this
@@ -43,7 +47,7 @@ Other free-text fields on the `ideas` row (`description`,
 | 2 | Researcher  | UI "Pursue" on a `new` idea (`POST /api/trigger-research`) | `new → pursuing → researched` (or `killed` on auto-kill signals) |
 | 3 | Validator   | UI "Send to validation" on a `researched` idea (`POST /api/trigger-validate`) | `researched → validating → validated` |
 | 4 | Planner     | UI "Approve plan" on a `validated` idea (`POST /api/trigger-plan`); aborts if `validated_at` is null | `validated → planning → plan_ready` |
-| 5 | Post-mortem | Vercel Cron weekly Mon 05:00 UTC                        | reads `killed` ideas, writes `feedback_patterns` dislikes |
+| 5 | Post-mortem | Vercel Cron weekly Mon 05:00 UTC — runs in-repo, see routines.md §5 | reads `killed` ideas, writes `feedback_patterns` + `pipeline_profile` |
 
 Status flow (manual gates between stages):
 
@@ -325,7 +329,13 @@ Body: {
 }
 ```
 
-### Post-mortem
+### Post-mortem (DEPRECATED — kept for history)
+
+> **Note:** Post-mortem no longer runs as a Claude Cloud routine. As of
+> 2026-05-19 it runs in-process via `app/api/run-postmortem/route.ts`
+> calling Claude through the Vercel AI Gateway. The skeleton below is the
+> *old* Cloud-routine contract and is preserved here for reference only.
+> Do not implement it.
 
 ```
 [prompt: cluster killed-idea reasons into 1–3 dislike patterns]

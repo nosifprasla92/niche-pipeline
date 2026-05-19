@@ -133,6 +133,40 @@ export async function markFireFailed(
   }
 }
 
+export async function markCompleted(
+  id: number,
+  summary: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("routine_runs")
+    .update({
+      status: "completed",
+      finished_at: new Date().toISOString(),
+      summary,
+    })
+    .eq("id", id);
+  if (error) {
+    console.error(`[routine-runs] markCompleted(${id}) failed:`, error.message);
+  }
+}
+
+export async function markError(
+  id: number,
+  errorMessage: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("routine_runs")
+    .update({
+      status: "error",
+      error_message: errorMessage,
+      finished_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) {
+    console.error(`[routine-runs] markError(${id}) failed:`, error.message);
+  }
+}
+
 export async function markCancelled(id: number): Promise<void> {
   const { error } = await supabase
     .from("routine_runs")

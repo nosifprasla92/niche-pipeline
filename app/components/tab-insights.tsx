@@ -4,6 +4,13 @@ import { useState } from "react";
 import { fetcher } from "@/lib/fetcher";
 import { FeedbackPattern, Idea } from "@/lib/supabase";
 
+type Profile = {
+  summary: string;
+  generated_at: string | null;
+  pattern_count: number;
+  idea_count: number;
+};
+
 export function TabInsights() {
   const { data: pdata, mutate: mutateP } = useSWR<{ patterns: FeedbackPattern[] }>(
     "/api/patterns",
@@ -13,6 +20,12 @@ export function TabInsights() {
   const { data: idata } = useSWR<{ ideas: Idea[] }>("/api/ideas", fetcher, {
     refreshInterval: 30000,
   });
+  const { data: profileData } = useSWR<{ profile: Profile }>(
+    "/api/profile",
+    fetcher,
+    { refreshInterval: 60000 },
+  );
+  const profile = profileData?.profile;
   const [newPattern, setNewPattern] = useState("");
   const [newType, setNewType] = useState<"like" | "dislike">("dislike");
   const [adding, setAdding] = useState(false);
@@ -76,15 +89,31 @@ export function TabInsights() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-4">
+      {profile?.summary ? (
+        <div className="space-y-2">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted flex items-baseline justify-between">
+            <span>Profile</span>
+            {profile.generated_at && (
+              <span>{relativeTime(profile.generated_at)}</span>
+            )}
+          </div>
+          <p className="font-display text-lg leading-relaxed text-text whitespace-pre-wrap">
+            {profile.summary}
+          </p>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-8">
         <PatternColumn
-          title="What you like"
+          title="Likes"
+          count={likes.length}
           tone="like"
           patterns={likes}
           onRemove={removePattern}
         />
         <PatternColumn
-          title="What you avoid"
+          title="Avoids"
+          count={dislikes.length}
           tone="dislike"
           patterns={dislikes}
           onRemove={removePattern}
@@ -96,7 +125,7 @@ export function TabInsights() {
           onClick={() => setAdding(true)}
           className="text-sm text-muted hover:text-text transition-colors"
         >
-          + Add pattern
+          + Add preference
         </button>
       ) : (
         <div className="flex gap-2 items-center">
@@ -105,7 +134,7 @@ export function TabInsights() {
             onChange={(e) => setNewType(e.target.value as "like" | "dislike")}
             className="text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           >
-            <option value="dislike">Dislike</option>
+            <option value="dislike">Avoid</option>
             <option value="like">Like</option>
           </select>
           <input
@@ -137,6 +166,17 @@ export function TabInsights() {
   );
 }
 
+function relativeTime(iso: string): string {
+  const diff = Date.now() - Date.parse(iso);
+  const m = Math.round(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  return `${d}d ago`;
+}
+
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="border border-border rounded-md p-4 bg-surface">
@@ -148,11 +188,13 @@ function Stat({ label, value }: { label: string; value: number }) {
 
 function PatternColumn({
   title,
+  count,
   tone,
   patterns,
   onRemove,
 }: {
   title: string;
+  count: number;
   tone: "like" | "dislike";
   patterns: FeedbackPattern[];
   onRemove: (id: number) => void;
@@ -161,25 +203,30 @@ function PatternColumn({
 
   return (
     <div>
-      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">{title}</div>
-      <div className="space-y-2">
+      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-3 pb-2 border-b border-border flex items-baseline justify-between">
+        <span>{title}</span>
+        <span>{count}</span>
+      </div>
+      <div className="space-y-0.5">
         {patterns.length === 0 && (
-          <div className="text-xs text-muted">None yet.</div>
+          <div className="text-xs text-muted py-1">None yet.</div>
         )}
         {patterns.map((p) => (
           <div
             key={p.id}
-            className="flex items-center justify-between gap-2 px-3 py-2 rounded-sm border border-border bg-surface text-sm"
+            className="group flex items-center justify-between gap-2 py-1.5 text-sm"
           >
-            <span className={`truncate ${accentText}`}>{p.pattern}</span>
+            <span className={`line-clamp-2 ${accentText}`}>{p.pattern}</span>
             <div className="flex items-center gap-2 shrink-0">
-              <span className="font-mono text-xs text-muted">×{p.confidence}</span>
               <button
                 onClick={() => onRemove(p.id)}
-                className="font-mono text-xs text-muted hover:text-text"
+                className="font-mono text-xs text-muted hover:text-text opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 remove
               </button>
+              {p.confidence > 1 && (
+                <span className="font-mono text-xs text-muted">×{p.confidence}</span>
+              )}
             </div>
           </div>
         ))}

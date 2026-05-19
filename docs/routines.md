@@ -20,7 +20,7 @@ describes.
 | 2 | Researcher | `DEEP_RESEARCH_ROUTINE_ID` + `DEEP_RESEARCH_TRIGGER_TOKEN` | UI "Pursue" on a `new` idea | 2026-05-19 (v2) | ✅ v2 — bracket-aware auto-kill thresholds |
 | 3 | Validator | `VALIDATE_ROUTINE_ID` + `VALIDATE_TRIGGER_TOKEN` | UI "Send to validation" on a `researched` idea | 2026-05-19 (v2) | ✅ v2 — untested end-to-end |
 | 4 | Planner | `PLAN_ROUTINE_ID` + `PLAN_TRIGGER_TOKEN` | UI "Approve plan" on a `validated` idea | 2026-05-19 (v2) | ✅ v2 — untested end-to-end |
-| 5 | Post-mortem | `POSTMORTEM_ROUTINE_ID` + `POSTMORTEM_TRIGGER_TOKEN` | UI "Run post-mortem" on Insights tab | 2026-05-19 (v2) | ✅ v2 — untested end-to-end |
+| 5 | Post-mortem | `AI_GATEWAY_API_KEY` (in-repo, not a Cloud routine) | UI "Run post-mortem" + weekly cron Mon 05:00 UTC | 2026-05-19 (v3 in-repo) | ✅ v3 — runs in-process via AI SDK |
 
 ---
 
@@ -144,24 +144,34 @@ describes.
 
 ---
 
-## 5. Post-mortem (new in 5-routine refactor)
+## 5. Post-mortem (in-repo, not a Cloud routine)
 
-- **claude.ai URL:** https://claude.ai/code/routines/trig_01Xj3TEq1YPMrSyMgUhUK3QE
-- **Trigger:** UI "Run post-mortem" button on Insights tab → `POST /api/run-postmortem`. Manual-only (no cron).
+Unlike the other four routines, post-mortem runs **in-process inside the Next.js app**, not as a hosted Claude Cloud routine. It calls Claude directly via the Vercel AI Gateway, all inside one synchronous HTTP request. The previous Cloud-routine architecture (POSTMORTEM_ROUTINE_ID / POSTMORTEM_TRIGGER_TOKEN env vars) was removed 2026-05-19 because the hosted prompt was timing out without callback and the data flow is simpler in-repo.
+
+- **Trigger:** UI "Run post-mortem" button on the dashboard header AND Vercel Cron (weekly Monday 05:00 UTC) → `POST /api/run-postmortem`
 - **App entry point:** [`app/api/run-postmortem/route.ts`](../app/api/run-postmortem/route.ts)
-- **Prompt version:** v2 (dedup against existing dislike patterns; confidence increment on existing patterns instead of duplicate inserts; short-circuit when <2 kills in window; callback POST wired)
-- **Pending update:** none
+- **Model:** `anthropic/claude-opus-4-7` via AI Gateway (`AI_GATEWAY_API_KEY` locally; OIDC on Vercel)
+- **Runtime:** synchronous, ~10–30s. `maxDuration = 300`. Routine_runs row goes `triggered → accepted → completed` in one request.
 
 **Reads:**
-- `ideas` where `status = 'killed' AND killed_at > now() - interval '14 days'` — fetch `id`, `title`, `kill_reason`, `killed_at`
-- `feedback_patterns` (existing dislikes for dedup)
+- `ideas` where `status='killed' AND killed_at > now() - interval '14 days'` — `id`, `title`, `kill_reason`
+- `feedback_patterns` — all rows, both `like` and `dislike` (likes for profile context only, not modified)
 
-**Writes:**
-- 1–3 rows upserted into `feedback_patterns` with `pattern_type='dislike'`, `pattern` = cluster description, `confidence` proportional to cluster size
+**Writes (success):**
+- Deletes any `feedback_patterns` rows the model marked as superseded (`replace_pattern_ids`)
+- Inserts consolidated `pattern_type='dislike'` clusters in their place
+- Upserts `pipeline_profile` singleton: 2–3 sentence second-person founder profile, regenerated each run
 
-**Callback:** `POST /api/routine-runs/{run_id}/complete` with summary like `"Clustered N killed ideas into M dislike patterns"`
+**Schema (Zod-enforced via `generateObject`):**
+```
+{
+  replace_pattern_ids: number[],
+  new_patterns: { pattern: string, confidence: number }[],
+  profile_summary: string
+}
+```
 
-**Known issues:** untested with real killed-idea clusters.
+**Tracked in `routine_runs`** like the Cloud routines so the runs drawer, conflict toast, failing banner, and cancel flow all keep working unchanged.
 
 ---
 
