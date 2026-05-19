@@ -6,8 +6,12 @@ import type { RoutineRun, RoutineRunStatus } from "@/lib/supabase";
 
 type DotColor = "green" | "yellow" | "red" | "gray";
 
-const IN_FLIGHT: RoutineRunStatus[] = ["triggered", "accepted"];
-const FAILED: RoutineRunStatus[] = ["error", "fire_failed", "timed_out"];
+export const IN_FLIGHT_STATUSES: RoutineRunStatus[] = ["triggered", "accepted"];
+export const FAILED_STATUSES: RoutineRunStatus[] = ["error", "fire_failed", "timed_out"];
+
+// Internal aliases — keep call sites in this file short.
+const IN_FLIGHT = IN_FLIGHT_STATUSES;
+const FAILED = FAILED_STATUSES;
 
 function computeDotColor(runs: RoutineRun[]): DotColor {
   if (runs.length === 0) return "gray";
@@ -85,7 +89,13 @@ function duration(start: string, end: string | null): string | null {
   return remSec ? `${min}m ${remSec}s` : `${min}m`;
 }
 
-export function RunsPanel() {
+export function RunsPanel({
+  open,
+  onOpenChange,
+}: {
+  open?: boolean;
+  onOpenChange?: (next: boolean) => void;
+}) {
   const { data } = useSWR<{ runs: RoutineRun[] }>(
     "/api/routine-runs?limit=20",
     fetcher,
@@ -93,7 +103,11 @@ export function RunsPanel() {
   );
   const runs = data?.runs ?? [];
   const color = computeDotColor(runs);
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = open !== undefined;
+  const actualOpen = isControlled ? open : internalOpen;
+  const setOpen = (next: boolean) =>
+    isControlled ? onOpenChange?.(next) : setInternalOpen(next);
 
   return (
     <>
@@ -103,7 +117,7 @@ export function RunsPanel() {
         title={dotTitle(color, runs)}
         aria-label={dotTitle(color, runs)}
       />
-      {open && <RunsDrawer runs={runs} onClose={() => setOpen(false)} />}
+      {actualOpen && <RunsDrawer runs={runs} onClose={() => setOpen(false)} />}
     </>
   );
 }

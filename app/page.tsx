@@ -9,8 +9,34 @@ import { TabValidating } from "./components/tab-validating";
 import { TabPlans } from "./components/tab-plans";
 import { TabArchive } from "./components/tab-archive";
 import { TabInsights } from "./components/tab-insights";
-import { RunsPanel } from "./components/runs-panel";
+import {
+  RunsPanel,
+  IN_FLIGHT_STATUSES,
+  FAILED_STATUSES,
+} from "./components/runs-panel";
 import { ConflictToast, type Conflict } from "./components/conflict-toast";
+
+type FailingRoutine = { routine: string; count: number };
+
+function failingRoutines(runs: RoutineRun[], min = 2): FailingRoutine[] {
+  const byRoutine = new Map<string, RoutineRun[]>();
+  for (const r of runs) {
+    const list = byRoutine.get(r.routine_name) ?? [];
+    list.push(r);
+    byRoutine.set(r.routine_name, list);
+  }
+  const out: FailingRoutine[] = [];
+  for (const [routine, list] of byRoutine) {
+    const finished = list.filter((r) => !IN_FLIGHT_STATUSES.includes(r.status));
+    let consecutive = 0;
+    for (const r of finished) {
+      if (FAILED_STATUSES.includes(r.status)) consecutive++;
+      else break;
+    }
+    if (consecutive >= min) out.push({ routine, count: consecutive });
+  }
+  return out;
+}
 
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -66,8 +92,10 @@ export default function Home() {
     { refreshInterval: 30000 },
   );
   const inFlight = runsData?.runs?.find((r) =>
-    ["triggered", "accepted"].includes(r.status),
+    IN_FLIGHT_STATUSES.includes(r.status),
   );
+  const failing = failingRoutines(runsData?.runs ?? []);
+  const [runsOpen, setRunsOpen] = useState(false);
 
   const lastNew = inboxData?.ideas?.[0];
   const allIdeas = allData?.ideas ?? [];
@@ -140,7 +168,7 @@ export default function Home() {
         </div>
         <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-3">
-            <RunsPanel />
+            <RunsPanel open={runsOpen} onOpenChange={setRunsOpen} />
             <button
               onClick={runNow}
               disabled={running}
@@ -152,6 +180,28 @@ export default function Home() {
           {error && <span className="text-xs text-error">{error}</span>}
         </div>
       </header>
+
+      {failing.length > 0 && (
+        <div className="mb-6 space-y-1.5">
+          {failing.map((f) => (
+            <button
+              key={f.routine}
+              onClick={() => setRunsOpen(true)}
+              className="w-full flex items-center justify-between gap-3 text-left px-4 py-2.5 rounded-md border border-error/40 bg-error/5 hover:bg-error/10 transition-colors"
+            >
+              <span className="text-sm text-error">
+                <span className="font-mono uppercase tracking-wider text-xs">
+                  {f.routine}
+                </span>{" "}
+                failing — {f.count} errored runs
+              </span>
+              <span className="font-mono text-xs text-error/80">
+                View details →
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <nav className="flex gap-1 mb-8 border-b border-border">
         {TABS.map((t) => {
