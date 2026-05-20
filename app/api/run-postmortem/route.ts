@@ -14,7 +14,7 @@ import { logEvent } from "@/lib/log";
 export const maxDuration = 300;
 
 const KILL_WINDOW_DAYS = 14;
-const MODEL = "anthropic/claude-opus-4-7";
+const MODEL = "anthropic/claude-haiku-4-5";
 
 const PostmortemSchema = z.object({
   replace_pattern_ids: z

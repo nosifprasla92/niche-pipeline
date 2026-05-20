@@ -6,6 +6,7 @@ import {
   type TriggeredBy,
 } from "./supabase";
 import { logEvent } from "./log";
+import { checkSpendAllowed } from "./spend-guard";
 
 const IN_FLIGHT_STATUSES: RoutineRunStatus[] = ["triggered", "accepted"];
 
@@ -54,9 +55,26 @@ export async function insertTriggered(
   triggeredBy: TriggeredBy,
   ideaContextId: number | null,
 ): Promise<InsertResult> {
-  // Lazy auto-sweep: the cron sweeper only runs daily, so stale 'accepted'
-  // rows can block triggers for hours in between. Sweep before claiming the
-  // in-flight slot so we don't 409 on a row that's already past its timeout.
+  // Spend gate: env var brake (HALT_ALL_AI=1), DB kill switch
+  // (pipeline_profile.kill_switch=true), and a daily routine_runs cap
+  // (AI_DAILY_CALL_LIMIT, default 50). Routines can run for hours of agentic
+  // Opus and there is no documented API to cancel a session in flight, so
+  // the only working brake is to stop NEW fires. See lib/spend-guard.ts.
+  const guard = await checkSpendAllowed();
+  if (!guard.ok) {
+    logEvent("warn", "trigger.spend_guard_blocked", {
+      routine: routineName,
+      triggered_by: triggeredBy,
+      reason: guard.reason,
+      detail: guard.detail,
+    });
+    return { ok: false, error: `spend_guard:${guard.reason}` };
+  }
+
+  // Lazy auto-sweep: the cron sweeper runs every 15 min (vercel.json), so a
+  // stale 'accepted' row could still block triggers between sweeps. Sweep
+  // before claiming the in-flight slot so we don't 409 on a row already
+  // past its timeout.
   const sweep = await sweepStaleRuns();
   if (sweep.ok && sweep.swept.length > 0) {
     logEvent("warn", "sweep.before_trigger", {

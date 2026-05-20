@@ -15,6 +15,7 @@ import {
   FAILED_STATUSES,
 } from "./components/runs-panel";
 import { ConflictToast, type Conflict } from "./components/conflict-toast";
+import { SpendToggle } from "./components/spend-toggle";
 
 type FailingRoutine = { routine: string; count: number };
 
@@ -239,6 +240,7 @@ export default function Home() {
         </div>
         <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-3">
+            <SpendToggle />
             <RunsPanel open={runsOpen} onOpenChange={setRunsOpen} />
             <button
               onClick={runPostmortem}

@@ -91,6 +91,26 @@ export type BusinessPlan = {
   kill_conditions?: string[];
 };
 
+export type ResearchSourceDataPoint = {
+  metric: string;
+  value: string;
+  context?: string;
+  page_or_quote?: string;
+};
+
+export type ResearchSource = {
+  id: number;
+  url: string;
+  title: string;
+  source_type: "pdf" | "article" | "report" | "other";
+  summary: string;
+  key_data_points: ResearchSourceDataPoint[];
+  tags: string[];
+  ingested_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type FeedbackPattern = {
   id: number;
   created_at: string;
