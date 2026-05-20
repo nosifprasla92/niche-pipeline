@@ -12,7 +12,9 @@ import { logEvent } from "@/lib/log";
 // so triggers self-heal between cron sweeps.
 //
 // Auth: Bearer CRON_SECRET via proxy.ts (Vercel Cron sends this header).
-// Schedule: see vercel.json — every 15 min (Pro plan; on Hobby drop to hourly).
+// Schedule: see vercel.json — daily on Hobby (the cron tier ceiling). The
+// lazy auto-sweep inside insertTriggered (lib/routine-runs.ts) handles stale
+// rows between cron runs, so daily is safe; tighten to */15 on Pro.
 
 async function handler(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
