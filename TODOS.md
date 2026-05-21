@@ -98,6 +98,62 @@ stage tab — eventually).
 
 ---
 
+## P2 — Move `checked_task_keys` out of `business_plan` JSON to a top-level column
+
+**What:** Add `ideas.checked_task_keys text[] NULL DEFAULT '{}'` column via
+migration. Update `tab-in-progress.tsx` to PATCH `{checked_task_keys: [...]}`
+directly (not the wrapped business_plan blob). Drop the nested-key persistence.
+
+**Why:** Codex review (2026-05-21) flagged that `worker/handlers/planner.ts`
+overwrites `business_plan` wholesale when a plan is regenerated, silently
+wiping any `checked_task_keys` nested inside. The current optimistic-lock
+also opens a brief window where a stale-tab tick can write the old plan body
+back, reverting planner output. Today the planner-regen path isn't reachable
+from the UI (no UI exists to re-trigger planner on an in_progress idea), but
+a direct `POST /api/trigger-plan` with an in_progress idea_id bypasses the
+ALLOWED_TRANSITIONS guard and triggers the wipe.
+
+**Pros:** Eliminates the wipe risk by keeping check progress structurally
+separate from LLM-regenerated plan content. Smaller PATCH payload. Easier
+to query "what tasks did the user complete?" across ideas later.
+**Cons:** One migration. Touch points: `lib/supabase.ts` Idea type,
+`tab-in-progress.tsx` read/write, the API route (now patches a real column).
+
+**Context:** Codex adversarial review finding #1 on PR #2 (feat/plan-c-execution-stage).
+Deferred because the path isn't reachable from the current UI; ship Plan C now
+and follow up before any feature ships that lets users re-trigger planner on
+existing in_progress ideas.
+
+**Effort:** S (human ~1hr / CC ~15min)
+**Priority:** P2
+**Depends on:** PR #2 (Plan C foundation) merged.
+
+---
+
+## P3 — Tighten update-idea route tests
+
+**What:** Replace the chainable-builder mock in
+`app/api/update-idea/route.test.ts` with per-method stubs that distinguish
+`.maybeSingle()` (single object or null) from `await query.select()` (array).
+Or migrate to a real @supabase/supabase-js test double.
+
+**Why:** Codex review flagged the current mock returns the same data for every
+terminal call. The "rejects killed → in_progress" test passes because the
+guard returns 400 before update ever runs, but if a future change adds a
+read-after-write or feedback insert, the test silently shifts behavior with
+no failure.
+
+**Pros:** Tests stop passing-by-accident; refactors surface real regressions.
+**Cons:** More mock surface to maintain.
+
+**Context:** Codex adversarial review finding #8 on PR #2.
+
+**Effort:** S (human ~45min / CC ~10min)
+**Priority:** P3
+**Depends on:** PR #2 merged.
+
+---
+
 ## P2 — Worker heartbeat + Mac-asleep alert
 
 **What:** Worker emits a heartbeat every 5 min (write `pipeline_profile.last_heartbeat`

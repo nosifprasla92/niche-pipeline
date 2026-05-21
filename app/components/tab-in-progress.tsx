@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import useSWR from "swr";
 import { fetcher, formatDate } from "@/lib/fetcher";
 import { Idea, BusinessPlan } from "@/lib/supabase";
@@ -125,6 +125,10 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [celebration, setCelebration] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One-shot guard so two rapid ticks can't both compute allDone=true from
+  // closure-captured state and double-fire advanceToLaunched(). Reset only on
+  // unmount or after undo.
+  const advancingRef = useRef(false);
 
   function isChecked(key: string): boolean {
     if (optimistic.has(key)) return optimistic.get(key)!;
@@ -205,7 +209,7 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
         });
 
         // Auto-advance: did this tick complete the last task?
-        if (next) {
+        if (next && !advancingRef.current) {
           const after = new Set(currentSet);
           let allDone = totalTasks > 0;
           for (const p of phases) {
@@ -218,7 +222,10 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
             }
             if (!allDone) break;
           }
-          if (allDone) await advanceToLaunched();
+          if (allDone) {
+            advancingRef.current = true;
+            await advanceToLaunched();
+          }
         }
       } finally {
         setPending((p) => {
@@ -247,11 +254,20 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
 
   async function undoLaunch() {
     setCelebration(false);
-    await fetch("/api/update-idea", {
+    const res = await fetch("/api/update-idea", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id: idea.id, patch: { status: "in_progress" } }),
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(
+        body.error ? `Undo failed: ${body.error}` : `Undo failed (HTTP ${res.status})`,
+      );
+    } else {
+      // Allow another auto-advance after a successful undo.
+      advancingRef.current = false;
+    }
     await onChange();
   }
 

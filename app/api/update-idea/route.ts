@@ -42,11 +42,13 @@ export async function POST(req: NextRequest) {
           .select("updated_at")
           .eq("id", id)
           .maybeSingle();
+        if (!fresh) {
+          // Row deleted between client read and PATCH. Returning 409 would
+          // make the client retry forever; 404 lets it surface "gone."
+          return NextResponse.json({ error: "not_found" }, { status: 404 });
+        }
         return NextResponse.json(
-          {
-            error: "stale",
-            current_updated_at: fresh?.updated_at ?? null,
-          },
+          { error: "stale", current_updated_at: fresh.updated_at },
           { status: 409 },
         );
       }

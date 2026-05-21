@@ -1,7 +1,5 @@
 "use client";
 
-import { useId } from "react";
-
 export function Checkbox({
   checked,
   onChange,
@@ -15,7 +13,6 @@ export function Checkbox({
   disabled?: boolean;
   pending?: boolean;
 }) {
-  const id = useId();
   const isInteractive = !disabled && !pending;
 
   function handleClick() {
@@ -31,42 +28,33 @@ export function Checkbox({
     }
   }
 
+  // Single click target: the row is a button-role element. We avoid <label
+  // htmlFor=...> + nested <button> because native label-forwarding in Chrome
+  // can re-dispatch the click to the inner button, firing onChange twice.
   return (
-    <label
-      htmlFor={id}
-      className={`flex items-start gap-3 py-2.5 select-none ${
-        isInteractive ? "cursor-pointer" : "cursor-default"
-      }`}
+    <div
+      role="checkbox"
+      tabIndex={isInteractive ? 0 : -1}
+      aria-checked={checked}
+      aria-disabled={disabled || undefined}
+      aria-busy={pending || undefined}
+      aria-label={label}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      className={`flex items-start gap-3 py-2.5 select-none focus:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm ${
+        isInteractive ? "cursor-pointer" : "cursor-default"
+      } ${disabled ? "opacity-40" : ""}`}
     >
-      <button
-        id={id}
-        type="button"
-        role="checkbox"
-        aria-checked={checked}
-        aria-disabled={disabled || undefined}
-        aria-busy={pending || undefined}
-        disabled={disabled || pending}
-        onKeyDown={handleKeyDown}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (isInteractive) onChange(!checked);
-        }}
-        className={`shrink-0 mt-0.5 inline-flex items-center justify-center w-5 h-5 rounded-sm border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 ${
+      <span
+        aria-hidden="true"
+        className={`shrink-0 mt-0.5 inline-flex items-center justify-center w-5 h-5 rounded-sm border transition-colors ${
           checked
             ? "bg-accent border-accent text-white"
-            : "bg-surface border-border hover:border-muted"
-        } ${pending ? "opacity-50" : ""} ${
-          disabled ? "opacity-40 cursor-not-allowed" : ""
-        }`}
+            : "bg-surface border-border"
+        } ${pending ? "opacity-50" : ""}`}
       >
         {checked && (
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            className="w-3.5 h-3.5"
-            aria-hidden="true"
-          >
+          <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5">
             <path
               d="M3.5 8.5l3 3 6-6.5"
               stroke="currentColor"
@@ -76,7 +64,7 @@ export function Checkbox({
             />
           </svg>
         )}
-      </button>
+      </span>
       <span
         className={`text-base leading-relaxed ${
           checked ? "line-through text-muted" : "text-text"
@@ -84,6 +72,6 @@ export function Checkbox({
       >
         {label}
       </span>
-    </label>
+    </div>
   );
 }
