@@ -212,7 +212,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <div className="min-h-screen max-w-5xl mx-auto px-4 sm:px-6 py-8 overflow-x-hidden">
       <header className="flex flex-wrap items-start justify-between gap-y-4 mb-10">
         <div>
           <h1 className="font-display text-4xl tracking-tight">Niche pipeline</h1>
@@ -289,7 +289,7 @@ export default function Home() {
       )}
 
       <nav
-        className="flex gap-1 mb-8 border-b border-border overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0"
+        className="flex gap-1 mb-8 border-b border-border overflow-x-auto min-w-0"
         style={{ scrollbarWidth: "none" }}
       >
         {TABS.map((t) => {
