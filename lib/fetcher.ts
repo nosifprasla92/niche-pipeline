@@ -12,6 +12,7 @@ export const STATUS_LABEL: Record<string, string> = {
   validated: "validated",
   planning: "planning",
   plan_ready: "plan ready",
+  in_progress: "in progress",
   launched: "launched",
   killed: "killed",
 };
@@ -24,6 +25,7 @@ export const STATUS_COLOR: Record<string, string> = {
   validated: "bg-border text-success",
   planning: "bg-border text-success",
   plan_ready: "bg-border text-success",
+  in_progress: "bg-border text-accent",
   launched: "bg-border text-success",
   killed: "bg-border text-muted",
 };
