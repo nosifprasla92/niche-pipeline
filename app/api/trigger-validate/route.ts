@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { fireRoutine } from "@/lib/fire-routine";
 import {
   checkInFlight,
   insertTriggered,
-  markAccepted,
-  markFireFailed,
+  markError,
 } from "@/lib/routine-runs";
 import { logEvent } from "@/lib/log";
 
@@ -15,7 +13,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "idea_id required" }, { status: 400 });
   }
 
-  logEvent("info", "trigger.start", {
+  logEvent("info", "enqueue.start", {
     routine: "validator",
     triggered_by: "ui",
     idea_id,
@@ -24,12 +22,6 @@ export async function POST(req: NextRequest) {
   const insert = await insertTriggered("validator", "ui", idea_id);
   if (!insert.ok && "conflict" in insert) {
     const inFlight = await checkInFlight("validator");
-    logEvent("warn", "trigger.conflict", {
-      routine: "validator",
-      idea_id,
-      conflict_run_id: inFlight?.id ?? null,
-      conflict_idea_id: inFlight?.idea_context_id ?? null,
-    });
     return NextResponse.json(
       {
         error: "conflict",
@@ -53,36 +45,9 @@ export async function POST(req: NextRequest) {
     .update({ status: "validating" })
     .eq("id", idea_id);
   if (ideaErr) {
-    await markFireFailed(runId, `ideas update: ${ideaErr.message}`);
+    await markError(runId, `ideas update: ${ideaErr.message}`);
     return NextResponse.json({ error: ideaErr.message }, { status: 500 });
   }
 
-  const fire = await fireRoutine(
-    process.env.VALIDATE_ROUTINE_ID,
-    process.env.VALIDATE_TRIGGER_TOKEN,
-  );
-  if (!fire.ok) {
-    await markFireFailed(runId, fire.body);
-    // Revert to 'researched' so the user can retry from the Researching tab
-    // without losing the research output.
-    await supabase
-      .from("ideas")
-      .update({ status: "researched" })
-      .eq("id", idea_id);
-    logEvent("error", "trigger.fire_failed", {
-      run_id: runId,
-      routine: "validator",
-      idea_id,
-      status: fire.status,
-    });
-    return NextResponse.json({ error: fire.body }, { status: fire.status });
-  }
-
-  await markAccepted(runId, fire.body);
-  logEvent("info", "trigger.accepted", {
-    run_id: runId,
-    routine: "validator",
-    idea_id,
-  });
   return NextResponse.json({ ok: true, run_id: runId });
 }

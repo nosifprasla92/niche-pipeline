@@ -8,26 +8,94 @@ import { StatusPill } from "./status-pill";
 import { ConflictToast, type Conflict } from "./conflict-toast";
 import { InsightList } from "./insight-list";
 
+const TEST_PREFIX = "(test) ";
+type InboxView = "ideas" | "testing";
+
+function isTest(idea: Idea): boolean {
+  return idea.title.startsWith(TEST_PREFIX);
+}
+
 export function TabInbox() {
   const { data, mutate } = useSWR<{ ideas: Idea[] }>("/api/ideas?status=new", fetcher, {
     refreshInterval: 30000,
   });
+  const [view, setView] = useState<InboxView>("ideas");
   const ideas = data?.ideas ?? [];
 
   if (!data) return <div className="text-sm text-muted">Loading…</div>;
-  if (ideas.length === 0)
-    return (
-      <div className="text-sm text-muted">
-        No new ideas yet. The generator runs daily at 8 AM, or click &ldquo;Run now&rdquo; up top.
-      </div>
-    );
+
+  const realIdeas = ideas.filter((i) => !isTest(i));
+  const testIdeas = ideas.filter(isTest);
+  const visible = view === "ideas" ? realIdeas : testIdeas;
 
   return (
-    <div className="space-y-6 max-w-[720px]">
-      {ideas.map((idea) => (
-        <InboxCard key={idea.id} idea={idea} onChange={() => mutate()} />
-      ))}
+    <div className="max-w-[720px]">
+      <div className="flex gap-1 mb-5 border-b border-border">
+        <SubTab
+          label="Ideas"
+          count={realIdeas.length}
+          active={view === "ideas"}
+          onClick={() => setView("ideas")}
+        />
+        <SubTab
+          label="Testing"
+          count={testIdeas.length}
+          active={view === "testing"}
+          onClick={() => setView("testing")}
+        />
+      </div>
+
+      {visible.length === 0 ? (
+        <div className="text-sm text-muted">
+          {view === "ideas"
+            ? "No new ideas yet. The generator runs daily at 8 AM, or click “Run now” up top."
+            : "No test ideas. Items get marked as test when their title starts with “(test)”."}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {visible.map((idea) => (
+            <InboxCard key={idea.id} idea={idea} onChange={() => mutate()} />
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+function SubTab({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative px-4 py-2 text-sm transition-colors ${
+        active ? "text-text" : "text-muted hover:text-text"
+      }`}
+    >
+      <span className="flex items-center gap-2">
+        {label}
+        {count > 0 && (
+          <span
+            className={`font-mono text-[0.6875rem] tabular-nums px-1.5 py-0.5 rounded-sm ${
+              active ? "bg-accent/15 text-accent" : "bg-border text-muted"
+            }`}
+          >
+            {count}
+          </span>
+        )}
+      </span>
+      {active && (
+        <span className="absolute left-0 right-0 -bottom-px h-px bg-accent" />
+      )}
+    </button>
   );
 }
 

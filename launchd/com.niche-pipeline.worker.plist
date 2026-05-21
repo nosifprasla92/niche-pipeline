@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.niche-pipeline.worker</string>
+
+    <!-- {{REPO_PATH}} is substituted by scripts/install-launchd.sh -->
+    <key>WorkingDirectory</key>
+    <string>{{REPO_PATH}}</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{PNPM_PATH}}</string>
+        <string>worker</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Throttle restarts on crash loops -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>{{HOME}}/Library/Logs/niche-pipeline-worker.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>{{HOME}}/Library/Logs/niche-pipeline-worker.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>{{PATH}}</string>
+    </dict>
+</dict>
+</plist>

@@ -6,11 +6,15 @@
     "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start -p 3100",
-    "lint": "eslint"
+    "lint": "eslint",
+    "worker": "tsx worker/index.ts",
+    "worker:once": "tsx worker/index.ts --once"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.146",
     "@supabase/supabase-js": "^2.105.4",
     "ai": "^6.0.184",
+    "dotenv": "^16.4.7",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "react": "19.2.4",
@@ -26,6 +30,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

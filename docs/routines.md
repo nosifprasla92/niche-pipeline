@@ -1,16 +1,20 @@
 # Routine Inventory
 
-Single source of truth for the 5 Claude Cloud Routines that drive this
-pipeline. Each routine lives at [claude.ai/code/routines](https://claude.ai/code/routines)
-(outside this repo), is identified by a `trig_…` ID, and is fired via an
-API trigger token. This file tracks *what they are and what they should
-do*. The HTTP contract they implement lives in
-[`routine-contract.md`](./routine-contract.md).
+> **MOVED IN-REPO (2026-05-21).** All 5 routines now run in the local
+> worker (`worker/handlers/*.ts`), authenticated via your Claude Code Max
+> session. The Cloud Routine URLs and `*_TRIGGER_TOKEN` env vars below are
+> historical — they no longer fire anything. See [`worker.md`](./worker.md)
+> for the current architecture.
+>
+> This file is kept as a behavioral spec: what each routine reads, writes,
+> and the kill/gate rules. To edit a prompt, modify the corresponding
+> handler file directly.
 
-**Update this file whenever you edit a routine prompt at claude.ai.**
-The `Prompt version` and `Last edited` rows are how future-you (and a
-fresh CC session) know whether the routine matches what this doc
-describes.
+Single source of truth for the 5 routines that drive this pipeline. This
+file tracks *what they are and what they should do*. The HTTP contract
+they implement lives in [`routine-contract.md`](./routine-contract.md).
+
+**Update this file whenever you edit a handler prompt.**
 
 ## At a glance
 
