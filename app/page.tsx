@@ -212,7 +212,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen max-w-5xl mx-auto px-4 sm:px-6 py-8 overflow-x-hidden">
+    <div className="min-h-screen w-full max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <header className="flex flex-wrap items-start justify-between gap-y-4 mb-10">
         <div>
           <h1 className="font-display text-4xl tracking-tight">Niche pipeline</h1>
