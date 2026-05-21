@@ -212,8 +212,8 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen max-w-5xl mx-auto px-6 py-8">
-      <header className="flex items-start justify-between mb-10">
+    <div className="min-h-screen max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <header className="flex flex-wrap items-start justify-between gap-y-4 mb-10">
         <div>
           <h1 className="font-display text-4xl tracking-tight">Niche pipeline</h1>
           {inFlight ? (
@@ -288,14 +288,17 @@ export default function Home() {
         </div>
       )}
 
-      <nav className="flex gap-1 mb-8 border-b border-border">
+      <nav
+        className="flex gap-1 mb-8 border-b border-border overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0"
+        style={{ scrollbarWidth: "none" }}
+      >
         {TABS.map((t) => {
           const count = pendingCounts[t.id] ?? 0;
           return (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 tab === t.id
                   ? "border-text text-text"
                   : "border-transparent text-muted hover:text-text"
