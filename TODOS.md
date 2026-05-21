@@ -98,21 +98,72 @@ stage tab — eventually).
 
 ---
 
+## P2 — Worker heartbeat + Mac-asleep alert
+
+**What:** Worker emits a heartbeat every 5 min (write `pipeline_profile.last_heartbeat`
+or a dedicated `worker_heartbeats` table). A small Vercel cron checks "last heartbeat
+older than 15 min" and alerts via Slack (reuses Plan B's SLACK_BOT_TOKEN once that
+ships). Optionally also fire the daily generator schedule from Vercel cron as a safety
+net — deduped by the existing UNIQUE in-flight index.
+
+**Why:** Today if the Mac sleeps at 04:00 UTC, the day's idea drop is silently skipped
+(`docs/worker.md` says so explicitly). Same applies to weekly post-mortem. Plan B's
+digest inherits the same failure mode — silent gap until you travel and lose a week
+of mornings. The unique partial index makes the Vercel-cron fallback safe.
+
+**Pros:** Closes the worker single-point-of-failure; mandatory before you can leave
+the Mac unattended for >24h. Reuses Plan B's Slack channel if it ships first.
+**Cons:** Small ongoing cost (one extra Vercel cron + a heartbeat write every 5 min).
+Requires either Plan B to ship first (for Slack alert) or a parallel notification
+channel.
+
+**Context:** Came out of `/plan-ceo-review` on 2026-05-21 as Approach D, declined for
+the A+B+C bundle scope. Documented per D10 so the failure mode doesn't get forgotten.
+
+**Effort:** S (human ~1-2 days / CC ~1 hour)
+**Priority:** P2
+**Depends on:** Plan B shipping first (for Slack alert channel); otherwise standalone.
+
+---
+
+## P3 — Outcome tracking per launched idea
+
+**What:** Once Plan C ships and ideas can reach `launched` status, add columns to
+`ideas` (or a new `idea_outcomes` table) tracking real outcomes: `mrr_usd`,
+`customer_count`, `died_at`, `died_reason`, `outcome_notes`. Periodic prompt
+("update outcome for launched idea #42?") or a tab section listing launched ideas
+with editable outcome fields.
+
+**Why:** Post-mortem currently learns from kill_reason (negative signal only).
+With outcome data, post-mortem can also learn from positive signal: "ideas matching
+this pattern actually shipped + earned." Closes the highest-quality feedback loop —
+outcome → pattern → next idea's quality.
+
+**Pros:** Highest-leverage signal source the system can have. Turns the
+post-mortem from "what didn't work" into "what worked AND what didn't."
+**Cons:** Schema decision (columns vs table) needs thought; outcome data is
+self-reported and may degrade if you stop logging it.
+
+**Context:** Came out of `/plan-ceo-review` on 2026-05-21 as D9. Deferred because
+it depends on Plan C shipping AND on having at least one launched idea, neither of
+which exist yet.
+
+**Effort:** M (human ~2-3 days / CC ~2 hours)
+**Priority:** P3
+**Depends on:** Plan C shipped; at least one idea has actually reached `launched`.
+
+---
+
 ## Backlog — Future Direction
 
 These are recorded so they're not lost; not active TODOs.
 
-- **Plan B — Daily digest delivery** (email or push when generator runs).
-  Closes the "I forget to check the URL" failure mode. Revisit after A+ ships
-  and you have ~1 month of run-history data to confirm whether you're actually
-  opening the dashboard daily.
-- **Plan C — Execution stage** (in_progress tab; plans-as-checklist from
-  `business_plan.launch_plan_12_weeks`). Plugs the biggest pipeline leak —
-  plans that never get executed. Larger scope; requires deciding whether
-  "funnel to action" is the actual product framing.
-- **Cost/token tracking per routine_run.** Add `input_tokens`, `output_tokens`,
-  `cost_usd` columns to routine_runs. Routine callback would need to include
-  these. Useful for "is this hobby getting expensive?" signal.
-- **Inbox ranking by feedback signal.** Use feedback_patterns to score new
-  ideas and sort the inbox. Only meaningful once feedback patterns are
-  proven to be consumed (A+ does the wiring; this is the next step).
+- **Embedding-based inbox ranking** — D6 option C from 2026-05-21 review.
+  Considered and rejected for A+B+C bundle (reintroduces API cost). Revisit if
+  tag-overlap ranking proves too coarse after a month of data.
+- **Email fallback for Slack delivery failure** — D5 option C from 2026-05-21 review.
+  Rejected for the bundle (two-integration trap). Revisit if Slack delivery proves
+  unreliable.
+- **Integration tests for optimistic locking + Slack** — D7 option A from 2026-05-21
+  review. Deferred; only pure-function ranking tests in scope for A+B+C. Next CEO
+  plan should consider this.

@@ -19,8 +19,27 @@ export type Status =
   | "validated"
   | "planning"
   | "plan_ready"
+  | "in_progress"
   | "launched"
   | "killed";
+
+// Allowed status transitions. Enforced in /api/update-idea route as a 400 guard
+// until the TODOS P3 Postgres CHECK constraint lands. Single-source-of-truth for
+// "what next step is legal from here." Add a row whenever a tab transitions an
+// idea via PATCH status=... — silent UI bugs writing impossible states (e.g.,
+// killed → in_progress) are rejected at the API boundary.
+export const ALLOWED_TRANSITIONS: Partial<Record<Status, Status[]>> = {
+  new: ["pursuing", "killed"],
+  pursuing: ["researched", "killed"],
+  researched: ["validating", "killed"],
+  validating: ["validated", "killed"],
+  validated: ["planning", "killed"],
+  planning: ["plan_ready", "killed"],
+  plan_ready: ["in_progress", "killed", "launched"],
+  in_progress: ["launched", "plan_ready", "killed"],
+  launched: ["in_progress", "killed"],
+  killed: [],
+};
 
 export type IncomeBracket = "lifestyle" | "business";
 

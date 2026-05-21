@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start -p 3100",
     "lint": "eslint",
+    "test": "vitest",
+    "test:run": "vitest run",
     "worker": "tsx worker/index.ts",
     "worker:once": "tsx worker/index.ts --once"
   },
@@ -31,6 +33,7 @@
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.7"
   }
 }

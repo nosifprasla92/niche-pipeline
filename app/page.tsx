@@ -7,6 +7,7 @@ import { TabInbox } from "./components/tab-inbox";
 import { TabResearching } from "./components/tab-researching";
 import { TabValidating } from "./components/tab-validating";
 import { TabPlans } from "./components/tab-plans";
+import { TabInProgress } from "./components/tab-in-progress";
 import { TabArchive } from "./components/tab-archive";
 import { TabInsights } from "./components/tab-insights";
 import {
@@ -73,6 +74,7 @@ const TABS = [
   { id: "researching", label: "Researching" },
   { id: "validating", label: "Validating" },
   { id: "plans", label: "Plans" },
+  { id: "in_progress", label: "In progress" },
   { id: "archive", label: "Archive" },
   { id: "insights", label: "Insights" },
 ] as const;
@@ -136,6 +138,7 @@ export default function Home() {
     researching: allIdeas.filter((i) => i.status === "researched").length,
     validating: allIdeas.filter((i) => i.status === "validated").length,
     plans: allIdeas.filter((i) => i.status === "plan_ready").length,
+    in_progress: allIdeas.filter((i) => i.status === "in_progress").length,
   };
 
   async function runNow() {
@@ -317,6 +320,7 @@ export default function Home() {
         {tab === "researching" && <TabResearching />}
         {tab === "validating" && <TabValidating />}
         {tab === "plans" && <TabPlans />}
+        {tab === "in_progress" && <TabInProgress />}
         {tab === "archive" && <TabArchive />}
         {tab === "insights" && <TabInsights />}
       </main>
