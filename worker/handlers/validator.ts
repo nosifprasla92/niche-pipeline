@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { supabase, type Idea, type RoutineRun } from "../../lib/supabase";
+import {
+  supabase,
+  type HandlerResult,
+  type Idea,
+  type RoutineRun,
+} from "../../lib/supabase";
 import { generateStructured } from "../claude";
 
 const BRACKET_PRICES = {
@@ -67,7 +72,7 @@ Output shape (JSON):
 }`;
 }
 
-export async function handleValidator(run: RoutineRun): Promise<string> {
+export async function handleValidator(run: RoutineRun): Promise<HandlerResult> {
   if (run.idea_context_id == null) {
     throw new Error("validator run has no idea_context_id");
   }
@@ -81,7 +86,7 @@ export async function handleValidator(run: RoutineRun): Promise<string> {
   if (error) throw new Error(`fetch idea: ${error.message}`);
   const idea = data as Idea;
 
-  const out = await generateStructured({
+  const { value: out, cost } = await generateStructured({
     prompt: buildPrompt(idea),
     schema: ValidatorSchema,
     model: "opus",
@@ -105,5 +110,8 @@ export async function handleValidator(run: RoutineRun): Promise<string> {
   const priceMatch = out.landing_copy.match(/\$(\d+(?:\.\d+)?)/);
   const priceHint = priceMatch ? ` Test price: $${priceMatch[1]}.` : "";
 
-  return `Validation kit ready for #${ideaId}.${priceHint}`;
+  return {
+    summary: `Validation kit ready for #${ideaId}.${priceHint}`,
+    cost,
+  };
 }

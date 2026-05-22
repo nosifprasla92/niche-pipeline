@@ -17,6 +17,7 @@ import {
 } from "./components/runs-panel";
 import { ConflictToast, type Conflict } from "./components/conflict-toast";
 import { SpendToggle } from "./components/spend-toggle";
+import { CostCard } from "./components/cost-card";
 
 type FailingRoutine = { routine: string; count: number };
 
@@ -240,6 +241,9 @@ export default function Home() {
               {COMPLETION_WINDOW_DAYS}d
             </p>
           )}
+          <div className="mt-3">
+            <CostCard />
+          </div>
         </div>
         <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-3">

@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   supabase,
   type FeedbackPattern,
+  type HandlerResult,
   type Idea,
   type RoutineRun,
 } from "../../lib/supabase";
@@ -114,7 +115,7 @@ Output shape (JSON):
 }`;
 }
 
-export async function handlePlanner(run: RoutineRun): Promise<string> {
+export async function handlePlanner(run: RoutineRun): Promise<HandlerResult> {
   if (run.idea_context_id == null) {
     throw new Error("planner run has no idea_context_id");
   }
@@ -140,7 +141,7 @@ export async function handlePlanner(run: RoutineRun): Promise<string> {
     );
   }
 
-  const out = await generateStructured({
+  const { value: out, cost } = await generateStructured({
     prompt: buildPrompt(idea, dislikes),
     schema: PlannerSchema,
     model: "sonnet",
@@ -158,5 +159,8 @@ export async function handlePlanner(run: RoutineRun): Promise<string> {
     .eq("id", ideaId);
   if (error) throw new Error(`update idea: ${error.message}`);
 
-  return `Built 12-week plan for #${ideaId}`;
+  return {
+    summary: `Built 12-week plan for #${ideaId}`,
+    cost,
+  };
 }

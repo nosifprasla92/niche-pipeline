@@ -157,6 +157,20 @@ export type RoutineRunStatus =
 
 export type TriggeredBy = "cron" | "ui" | "callback";
 
+export type CostPayload = {
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cost_usd: number | null;
+};
+
+/** Shape every worker handler returns: human-readable summary + cost payload
+ * threaded from the SDK. Lives here (not in worker/) to avoid a circular
+ * import: worker/index.ts dispatches to handlers, handlers need this type. */
+export type HandlerResult = {
+  summary: string;
+  cost: CostPayload | null;
+};
+
 export type RoutineRun = {
   id: number;
   routine_name: RoutineName;
@@ -168,4 +182,7 @@ export type RoutineRun = {
   error_message: string | null;
   fire_response_body: string | null;
   summary: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cost_usd: number | null;
 };

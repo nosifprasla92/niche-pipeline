@@ -3,7 +3,7 @@
 import "./env";
 
 import { sweepStaleRuns } from "../lib/routine-runs";
-import type { RoutineName, RoutineRun } from "../lib/supabase";
+import type { HandlerResult, RoutineName, RoutineRun } from "../lib/supabase";
 import { claimNextTriggered, complete, fail } from "./queue";
 import { tickScheduler } from "./schedule";
 import { handleGenerator } from "./handlers/generator";
@@ -16,7 +16,10 @@ const POLL_MS = 5_000;
 // Sweeper every N idle ticks (no work + no scheduler hit). 60 ticks × 5s = 5min.
 const SWEEP_EVERY_IDLE_TICKS = 60;
 
-const handlers: Record<RoutineName, (run: RoutineRun) => Promise<string>> = {
+const handlers: Record<
+  RoutineName,
+  (run: RoutineRun) => Promise<HandlerResult>
+> = {
   generator: handleGenerator,
   researcher: handleResearcher,
   validator: handleValidator,
@@ -44,10 +47,14 @@ async function runOne(run: RoutineRun): Promise<void> {
   const startedAt = Date.now();
   console.log(`[worker] start ${run.routine_name} run #${run.id}`);
   try {
-    const summary = await handler(run);
-    await complete(run.id, summary);
+    const { summary, cost } = await handler(run);
+    await complete(run.id, summary, cost);
     const dur = ((Date.now() - startedAt) / 1000).toFixed(1);
-    console.log(`[worker] done ${run.routine_name} run #${run.id} in ${dur}s — ${summary}`);
+    const costNote =
+      cost?.cost_usd != null ? ` ($${cost.cost_usd.toFixed(4)})` : "";
+    console.log(
+      `[worker] done ${run.routine_name} run #${run.id} in ${dur}s${costNote} — ${summary}`,
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await fail(run.id, msg);

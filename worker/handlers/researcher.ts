@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   supabase,
   type FeedbackPattern,
+  type HandlerResult,
   type Idea,
   type RoutineRun,
 } from "../../lib/supabase";
@@ -78,7 +79,7 @@ Output shape (JSON):
 }`;
 }
 
-export async function handleResearcher(run: RoutineRun): Promise<string> {
+export async function handleResearcher(run: RoutineRun): Promise<HandlerResult> {
   if (run.idea_context_id == null) {
     throw new Error("researcher run has no idea_context_id");
   }
@@ -98,7 +99,7 @@ export async function handleResearcher(run: RoutineRun): Promise<string> {
   const idea = ideaRes.data as Idea;
   const dislikes = (patternsRes.data ?? []) as FeedbackPattern[];
 
-  const out = await generateStructured({
+  const { value: out, cost } = await generateStructured({
     prompt: buildPrompt(idea, dislikes),
     schema: ResearchSchema,
     model: "opus",
@@ -123,7 +124,10 @@ export async function handleResearcher(run: RoutineRun): Promise<string> {
       })
       .eq("id", ideaId);
     if (error) throw new Error(`update idea (kill): ${error.message}`);
-    return `Researched #${ideaId} → killed: ${out.auto_kill.reason}`;
+    return {
+      summary: `Researched #${ideaId} → killed: ${out.auto_kill.reason}`,
+      cost,
+    };
   }
 
   const { error } = await supabase
@@ -141,5 +145,8 @@ export async function handleResearcher(run: RoutineRun): Promise<string> {
     .eq("id", ideaId);
   if (error) throw new Error(`update idea: ${error.message}`);
 
-  return `Researched #${ideaId}: competitors_above_50=${out.competitors_above_50}, effort=${out.effort_weeks}w`;
+  return {
+    summary: `Researched #${ideaId}: competitors_above_50=${out.competitors_above_50}, effort=${out.effort_weeks}w`,
+    cost,
+  };
 }
