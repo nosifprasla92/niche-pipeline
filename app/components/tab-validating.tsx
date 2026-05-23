@@ -69,7 +69,7 @@ function ValidateCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
           <span className="font-mono text-xs text-muted">{formatDate(idea.updated_at)}</span>
         </div>
         <h3 className="font-display text-2xl leading-tight mb-3">{idea.title}</h3>
-        <p className="text-base text-text/90 leading-relaxed mb-5">{idea.description}</p>
+        <p className="text-base text-text/90 leading-relaxed mb-5 whitespace-pre-line max-w-[65ch]">{idea.description}</p>
         <div className="animate-pulse font-mono text-xs uppercase tracking-wider text-muted mb-5">
           Building validation kit… typically 2–4 minutes.
         </div>
@@ -168,12 +168,12 @@ function ValidateCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
         </span>
       </div>
       <h3 className="font-display text-2xl leading-tight mb-3">{idea.title}</h3>
-      <p className="text-base text-text/90 leading-relaxed mb-5">{idea.description}</p>
+      <p className="text-base text-text/90 leading-relaxed mb-5 whitespace-pre-line max-w-[65ch]">{idea.description}</p>
 
-      <Section title="Landing page copy">{idea.landing_copy}</Section>
-      <Section title="Customer interview script">{idea.interview_questions}</Section>
-      <Section title="$50 ad test plan">{idea.ad_test_plan}</Section>
-      <Section title="Signals to collect (7 days)">{idea.validation_signals}</Section>
+      <Section title="Landing page copy" titleColor="text-accent">{idea.landing_copy}</Section>
+      <Section title="Customer interview script" titleColor="text-info">{idea.interview_questions}</Section>
+      <Section title="$50 ad test plan" titleColor="text-warning">{idea.ad_test_plan}</Section>
+      <Section title="Signals to collect (7 days)" titleColor="text-success">{idea.validation_signals}</Section>
 
       {!killing ? (
         <div className="flex gap-2 mt-5">
@@ -227,12 +227,12 @@ function ValidateCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
   );
 }
 
-function Section({ title, children }: { title: string; children?: React.ReactNode }) {
+function Section({ title, titleColor = "text-muted", children }: { title: string; titleColor?: string; children?: React.ReactNode }) {
   if (!children) return null;
   return (
-    <div className="mb-4">
-      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">{title}</div>
-      <p className="text-sm leading-relaxed whitespace-pre-wrap">{children}</p>
+    <div className="mb-5">
+      <div className={`font-mono text-[0.6875rem] uppercase tracking-wider ${titleColor} mb-2`}>{title}</div>
+      <p className="text-sm leading-relaxed whitespace-pre-line max-w-[65ch]">{children}</p>
     </div>
   );
 }

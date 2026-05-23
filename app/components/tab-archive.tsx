@@ -2,8 +2,9 @@
 import useSWR from "swr";
 import { useMemo, useState } from "react";
 import { fetcher, formatDate } from "@/lib/fetcher";
-import { Idea } from "@/lib/supabase";
+import { Idea, BusinessPlan } from "@/lib/supabase";
 import { StatusPill } from "./status-pill";
+import { InsightList } from "./insight-list";
 
 const FILTERS = [
   { id: "all", label: "All", match: () => true },
@@ -110,17 +111,104 @@ export function TabArchive() {
             >
               Close ×
             </button>
-            <div className="mb-3">
+            <div className="flex items-center gap-3 mb-4">
               <StatusPill status={open.status} />
+              <span className="font-mono text-xs text-muted">{formatDate(open.updated_at)}</span>
             </div>
             <h3 className="font-display text-2xl leading-tight mb-3">{open.title}</h3>
-            <p className="text-base text-text/90 leading-relaxed mb-4">{open.description}</p>
-            <pre className="font-mono text-xs whitespace-pre-wrap bg-border/40 p-3 rounded-md overflow-x-auto">
-              {JSON.stringify(open, null, 2)}
-            </pre>
+            <p className="text-base text-text/90 leading-relaxed mb-5 whitespace-pre-line max-w-[65ch]">{open.description}</p>
+
+            {open.tags && open.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-5">
+                {open.tags.map((t) => (
+                  <span
+                    key={t}
+                    className="font-mono text-[0.6875rem] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-accent/8 text-accent/80"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {open.kill_reason && (
+              <DrawerSection title="Kill reason" titleColor="text-error">{open.kill_reason}</DrawerSection>
+            )}
+
+            {open.why_it_works?.length > 0 && (
+              <div className="mb-5">
+                <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-success mb-2">Why this works</div>
+                <InsightList points={open.why_it_works} tone="positive" />
+              </div>
+            )}
+
+            {open.devils_advocate?.length > 0 && (
+              <div className="mb-5">
+                <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-warning mb-2">Devil&rsquo;s advocate</div>
+                <InsightList points={open.devils_advocate} tone="cautionary" />
+              </div>
+            )}
+
+            <DrawerSection title="Competitive landscape">{open.competition_analysis}</DrawerSection>
+            <DrawerSection title="Competitor complaints" titleColor="text-warning">{open.competitor_complaints}</DrawerSection>
+            <DrawerSection title="Effort to launch">{open.effort_breakdown}</DrawerSection>
+            <DrawerSection title="Zero-paid path" titleColor="text-success">{open.zero_paid_path}</DrawerSection>
+
+            <DrawerSection title="Landing page copy" titleColor="text-accent">{open.landing_copy}</DrawerSection>
+            <DrawerSection title="Interview script" titleColor="text-info">{open.interview_questions}</DrawerSection>
+            <DrawerSection title="Ad test plan" titleColor="text-warning">{open.ad_test_plan}</DrawerSection>
+            <DrawerSection title="Validation signals" titleColor="text-success">{open.validation_signals}</DrawerSection>
+
+            <ArchivePlanSummary plan={open.business_plan} />
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function DrawerSection({ title, titleColor = "text-muted", children }: { title: string; titleColor?: string; children?: React.ReactNode }) {
+  if (!children) return null;
+  return (
+    <div className="mb-5">
+      <div className={`font-mono text-[0.6875rem] uppercase tracking-wider ${titleColor} mb-2`}>{title}</div>
+      <p className="text-sm leading-relaxed whitespace-pre-line max-w-[65ch]">{children}</p>
+    </div>
+  );
+}
+
+function ArchivePlanSummary({ plan }: { plan: BusinessPlan | null }) {
+  if (!plan) return null;
+  return (
+    <>
+      {plan.executive_summary && (
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-accent mb-2">Executive summary</div>
+          <p className="text-sm leading-relaxed whitespace-pre-line max-w-[65ch]">{plan.executive_summary}</p>
+        </div>
+      )}
+      {plan.value_proposition && (
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-success mb-2">Value proposition</div>
+          <p className="text-sm leading-relaxed whitespace-pre-line max-w-[65ch]">{plan.value_proposition}</p>
+        </div>
+      )}
+      {plan.biggest_risks && plan.biggest_risks.length > 0 && (
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-warning mb-2">Biggest risks</div>
+          <ul className="list-disc ml-5 text-sm leading-relaxed marker:text-warning/50">
+            {plan.biggest_risks.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        </div>
+      )}
+      {plan.kill_conditions && plan.kill_conditions.length > 0 && (
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-error mb-2">Kill conditions</div>
+          <ul className="list-disc ml-5 text-sm leading-relaxed marker:text-error/50">
+            {plan.kill_conditions.map((c, i) => <li key={i}>{c}</li>)}
+          </ul>
+        </div>
+      )}
+    </>
   );
 }

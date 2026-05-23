@@ -76,7 +76,7 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
           <span className="font-mono text-xs text-muted">{formatDate(idea.updated_at)}</span>
         </div>
         <h3 className="font-display text-2xl leading-tight mb-3">{idea.title}</h3>
-        <p className="text-base text-text/90 leading-relaxed mb-5">{idea.description}</p>
+        <p className="text-base text-text/90 leading-relaxed mb-5 whitespace-pre-line max-w-[65ch]">{idea.description}</p>
         <div className="animate-pulse font-mono text-xs uppercase tracking-wider text-muted mb-5">
           Deep research in progress… typically 2–5 minutes.
         </div>
@@ -181,24 +181,30 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
         </span>
       </div>
       <h3 className="font-display text-2xl leading-tight mb-3">{idea.title}</h3>
-      <p className="text-base text-text/90 leading-relaxed mb-5">{idea.description}</p>
+      <p className="text-base text-text/90 leading-relaxed mb-5 whitespace-pre-line max-w-[65ch]">{idea.description}</p>
 
       <div className="grid grid-cols-3 gap-3 mb-5">
         <Metric
           label="Competitors >$50"
           value={idea.competitors_above_50 != null ? String(idea.competitors_above_50) : "—"}
+          tone={idea.competitors_above_50 != null && idea.competitors_above_50 <= 3 ? "positive" : idea.competitors_above_50 != null && idea.competitors_above_50 >= 10 ? "cautionary" : undefined}
         />
-        <Metric label="Effort" value={`${idea.effort_weeks ?? "—"} wks`} />
+        <Metric
+          label="Effort"
+          value={`${idea.effort_weeks ?? "—"} wks`}
+          tone={idea.effort_weeks != null && idea.effort_weeks <= 4 ? "positive" : idea.effort_weeks != null && idea.effort_weeks >= 10 ? "cautionary" : undefined}
+        />
         <Metric
           label="Bracket"
           value={idea.income_bracket ?? "—"}
+          tone={idea.income_bracket === "business" ? "positive" : idea.income_bracket === "lifestyle" ? "info" : undefined}
         />
       </div>
 
-      <Section title="Competitive landscape">{idea.competition_analysis}</Section>
-      <Section title="Competitor complaints">{idea.competitor_complaints}</Section>
-      <Section title="Effort to launch">{idea.effort_breakdown}</Section>
-      <Section title="Zero-paid path to first 10">{idea.zero_paid_path}</Section>
+      <Section title="Competitive landscape" titleColor="text-muted">{idea.competition_analysis}</Section>
+      <Section title="Competitor complaints" titleColor="text-warning">{idea.competitor_complaints}</Section>
+      <Section title="Effort to launch" titleColor="text-muted">{idea.effort_breakdown}</Section>
+      <Section title="Zero-paid path to first 10" titleColor="text-success">{idea.zero_paid_path}</Section>
 
       {!killing ? (
         <div className="flex gap-2 mt-5">
@@ -253,21 +259,27 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+const METRIC_TONE = {
+  positive: "text-success",
+  cautionary: "text-warning",
+  info: "text-info",
+} as const;
+
+function Metric({ label, value, tone }: { label: string; value: string; tone?: keyof typeof METRIC_TONE }) {
   return (
     <div className="border border-border rounded-md p-3">
       <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1">{label}</div>
-      <div className="font-mono text-lg">{value}</div>
+      <div className={`font-mono text-lg ${tone ? METRIC_TONE[tone] : ""}`}>{value}</div>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children?: React.ReactNode }) {
+function Section({ title, titleColor = "text-muted", children }: { title: string; titleColor?: string; children?: React.ReactNode }) {
   if (!children) return null;
   return (
-    <div className="mb-4">
-      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">{title}</div>
-      <p className="text-sm leading-relaxed whitespace-pre-wrap">{children}</p>
+    <div className="mb-5">
+      <div className={`font-mono text-[0.6875rem] uppercase tracking-wider ${titleColor} mb-2`}>{title}</div>
+      <p className="text-sm leading-relaxed whitespace-pre-line max-w-[65ch]">{children}</p>
     </div>
   );
 }

@@ -78,10 +78,10 @@ export function TabInsights() {
     <div className="space-y-8 max-w-[720px]">
       {funnelMoved ? (
         <div className="grid grid-cols-4 gap-3">
-          <Stat label="Suggested (30d)" value={suggested} />
-          <Stat label="Pursued" value={pursued} />
-          <Stat label="Validated" value={validated} />
-          <Stat label="Launched" value={launched} />
+          <Stat label="Suggested (30d)" value={suggested} tone="muted" />
+          <Stat label="Pursued" value={pursued} tone="accent" />
+          <Stat label="Validated" value={validated} tone="info" />
+          <Stat label="Launched" value={launched} tone="success" />
         </div>
       ) : suggested > 0 ? (
         <div className="font-mono text-xs text-muted uppercase tracking-wider">
@@ -91,7 +91,7 @@ export function TabInsights() {
 
       {profile?.summary ? (
         <div className="space-y-2">
-          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted flex items-baseline justify-between">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-accent flex items-baseline justify-between">
             <span>Profile</span>
             {profile.generated_at && (
               <span>{relativeTime(profile.generated_at)}</span>
@@ -177,11 +177,18 @@ function relativeTime(iso: string): string {
   return `${d}d ago`;
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+const STAT_TONE: Record<string, string> = {
+  muted: "",
+  accent: "text-accent",
+  info: "text-info",
+  success: "text-success",
+};
+
+function Stat({ label, value, tone = "muted" }: { label: string; value: number; tone?: string }) {
   return (
     <div className="border border-border rounded-md p-4 bg-surface">
       <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">{label}</div>
-      <div className="font-display text-3xl">{value}</div>
+      <div className={`font-display text-3xl ${value > 0 ? (STAT_TONE[tone] ?? "") : ""}`}>{value}</div>
     </div>
   );
 }
@@ -200,14 +207,16 @@ function PatternColumn({
   onRemove: (id: number) => void;
 }) {
   const accentText = tone === "like" ? "text-success" : "text-error";
+  const headerColor = tone === "like" ? "text-success" : "text-error";
+  const borderColor = tone === "like" ? "border-success/30" : "border-error/30";
 
   return (
     <div>
-      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-3 pb-2 border-b border-border flex items-baseline justify-between">
-        <span>{title}</span>
-        <span>{count}</span>
+      <div className={`font-mono text-[0.6875rem] uppercase tracking-wider mb-3 pb-2 border-b ${borderColor} flex items-baseline justify-between`}>
+        <span className={headerColor}>{title}</span>
+        <span className="text-muted">{count}</span>
       </div>
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {patterns.length === 0 && (
           <div className="text-xs text-muted py-1">None yet.</div>
         )}

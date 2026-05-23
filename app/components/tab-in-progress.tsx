@@ -353,19 +353,19 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
             const phaseDone = tasks.length > 0 && phaseChecked === tasks.length;
             const isActive = !phaseDone;
             return (
-              <div key={phase.weeks} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
+              <div key={phase.weeks} className={`border-t pt-3 first:border-t-0 first:pt-0 ${phaseDone ? "border-success/20" : "border-border"}`}>
                 <button
                   onClick={() => toggleExpanded(phase.weeks)}
                   className="w-full flex items-center justify-between gap-3 py-1 text-left"
                   aria-expanded={isExpanded}
                 >
-                  <h4 className="font-display text-lg leading-tight flex-1">
-                    <span className="text-muted text-sm font-mono mr-2">Weeks {phase.weeks}</span>
+                  <h4 className={`font-display text-lg leading-tight flex-1 ${phaseDone ? "text-text/60" : ""}`}>
+                    <span className={`text-sm font-mono mr-2 ${phaseDone ? "text-success/60" : "text-accent"}`}>Weeks {phase.weeks}</span>
                     {phase.title}
                   </h4>
                   <span
                     className={`font-mono text-xs whitespace-nowrap ${
-                      phaseDone ? "text-muted" : isActive ? "text-accent" : "text-muted"
+                      phaseDone ? "text-success" : isActive ? "text-accent" : "text-muted"
                     }`}
                   >
                     {phaseChecked}/{tasks.length} done{phaseDone ? " ✓" : ""}
