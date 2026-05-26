@@ -214,24 +214,24 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
-      <header className="flex flex-col sm:flex-row sm:flex-wrap sm:items-start sm:justify-between gap-y-4 mb-8 sm:mb-10">
+      <header className="flex flex-col sm:flex-row sm:flex-wrap sm:items-start sm:justify-between gap-y-3 sm:gap-y-4 mb-5 sm:mb-10">
         <div>
           <h1 className="font-display text-2xl sm:text-4xl tracking-tight">Niche pipeline</h1>
           {inFlight ? (
-            <p className="font-mono text-xs mt-2 uppercase tracking-wider flex items-center gap-2">
+            <p className="font-mono text-xs mt-1.5 sm:mt-2 uppercase tracking-wider flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-warning animate-pulse" />
               <span className="text-warning">
                 {inFlight.routine_name} running · started {timeAgo(inFlight.started_at)}
               </span>
             </p>
           ) : (
-            <p className="font-mono text-xs text-muted mt-2 uppercase tracking-wider">
+            <p className="font-mono text-xs text-muted mt-1.5 sm:mt-2 uppercase tracking-wider">
               {subtitle}
             </p>
           )}
           {completion.finished > 0 && (
             <p
-              className={`font-mono text-xs mt-1 uppercase tracking-wider ${
+              className={`font-mono text-xs mt-0.5 sm:mt-1 uppercase tracking-wider ${
                 completion.completed / completion.finished < 0.5
                   ? "text-error"
                   : "text-muted"
@@ -241,7 +241,7 @@ export default function Home() {
               {COMPLETION_WINDOW_DAYS}d
             </p>
           )}
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-3">
             <CostCard />
           </div>
         </div>
