@@ -233,7 +233,7 @@ function PatternColumn({
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => onRemove(p.id)}
-                className="font-mono text-xs text-muted hover:text-text opacity-0 group-hover:opacity-100 transition-opacity"
+                className="font-mono text-xs text-muted hover:text-text sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
               >
                 remove
               </button>
