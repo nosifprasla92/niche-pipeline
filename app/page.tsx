@@ -253,14 +253,14 @@ export default function Home() {
               onClick={runPostmortem}
               disabled={runningPm}
               title="Cluster killed-idea reasons from the last 14 days into new dislike patterns"
-              className="px-3 py-1.5 text-sm rounded-md border border-border text-muted hover:text-text hover:bg-border/60 disabled:opacity-50"
+              className="px-3 py-2 text-sm rounded-md border border-border text-muted hover:text-text hover:bg-border/60 disabled:opacity-50"
             >
               {runningPm ? "Running…" : "Run post-mortem"}
             </button>
             <button
               onClick={runNow}
               disabled={running}
-              className="px-3 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/60 disabled:opacity-50"
+              className="px-3 py-2 text-sm rounded-md border border-border text-text hover:bg-border/60 disabled:opacity-50"
             >
               {running ? "Running…" : "Run now"}
             </button>

@@ -149,7 +149,7 @@ export function TabInsights() {
           <div className="flex gap-2 items-center">
             <button
               onClick={addPattern}
-              className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
+              className="px-4 py-2 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
             >
               Add
             </button>

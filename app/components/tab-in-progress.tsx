@@ -50,7 +50,7 @@ export function TabInProgress() {
         <div className="text-error mb-2">Couldn&rsquo;t load execution plans.</div>
         <button
           onClick={() => mutate()}
-          className="px-3 py-1.5 text-xs rounded-md border border-border text-text hover:bg-border/60 transition-colors"
+          className="px-3 py-2 text-xs rounded-md border border-border text-text hover:bg-border/60 transition-colors"
         >
           Retry
         </button>

@@ -183,13 +183,13 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
       <div className="flex gap-2 mt-5">
         <button
           onClick={() => setStatus("in_progress")}
-          className="px-4 py-1.5 text-sm rounded-md bg-accent text-white hover:opacity-90 transition-opacity"
+          className="px-4 py-2 text-sm rounded-md bg-accent text-white hover:opacity-90 transition-opacity"
         >
           Start executing
         </button>
         <button
           onClick={() => setStatus("launched")}
-          className="px-4 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/60 transition-colors"
+          className="px-4 py-2 text-sm rounded-md border border-border text-text hover:bg-border/60 transition-colors"
         >
           Skip to launched
         </button>

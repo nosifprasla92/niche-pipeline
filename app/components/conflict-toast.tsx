@@ -38,7 +38,7 @@ export function ConflictToast({
         <button
           onClick={onDismiss}
           disabled={cancelling}
-          className="px-3 py-1.5 text-xs rounded-md border border-border text-text hover:bg-border/50 disabled:opacity-50 transition-colors"
+          className="px-3 py-2 text-xs rounded-md border border-border text-text hover:bg-border/50 disabled:opacity-50 transition-colors"
         >
           Dismiss
         </button>
