@@ -101,7 +101,7 @@ export function TabArchive() {
                 <td className="px-3 py-2.5 text-right">
                   <button
                     onClick={() => setOpen(idea)}
-                    className="text-accent hover:underline"
+                    className="text-accent underline underline-offset-2 decoration-accent/40 hover:decoration-accent"
                   >
                     View
                   </button>

@@ -62,8 +62,6 @@ export function TabInProgress() {
     return (
       <div className="space-y-6 max-w-[720px]">
         <SkeletonPlan />
-        <SkeletonPlan />
-        <SkeletonPlan />
       </div>
     );
   }
