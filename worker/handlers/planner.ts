@@ -15,7 +15,7 @@ const BRACKET_MRR_CEILING = {
 
 const TaskDetailSchema = z.object({
   task: z.string().min(3).max(600),
-  steps: z.array(z.string().min(10).max(400)).min(2).max(8),
+  steps: z.array(z.string().min(10).max(1000)).min(2).max(8),
 });
 
 const LaunchWeekSchema = z.object({
