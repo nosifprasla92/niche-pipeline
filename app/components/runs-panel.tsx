@@ -113,10 +113,12 @@ export function RunsPanel({
     <>
       <button
         onClick={() => setOpen(true)}
-        className={`w-2.5 h-2.5 rounded-full ${dotClasses(color)} hover:ring-2 hover:ring-border cursor-pointer transition-shadow`}
+        className="relative flex items-center justify-center w-8 h-8 sm:w-2.5 sm:h-2.5 rounded-full sm:rounded-full cursor-pointer transition-shadow hover:ring-2 hover:ring-border"
         title={dotTitle(color, runs)}
         aria-label={dotTitle(color, runs)}
-      />
+      >
+        <span className={`w-2.5 h-2.5 rounded-full ${dotClasses(color)}`} />
+      </button>
       {actualOpen && <RunsDrawer runs={runs} onClose={() => setOpen(false)} />}
     </>
   );
