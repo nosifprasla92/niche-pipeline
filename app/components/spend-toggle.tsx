@@ -58,7 +58,7 @@ export function SpendToggle() {
         type="button"
         onClick={() => setOpen(true)}
         title={blocked ? "Click to see why spending is halted" : "All brakes off — AI calls are live"}
-        className={`flex items-center gap-1.5 px-2 py-1 rounded-md border font-mono text-[0.6875rem] uppercase tracking-wider hover:opacity-80 ${pillClasses}`}
+        className={`flex items-center gap-1.5 px-2.5 py-2 sm:py-1 rounded-md border font-mono text-[0.6875rem] uppercase tracking-wider hover:opacity-80 ${pillClasses}`}
       >
         <span className={`inline-block w-1.5 h-1.5 rounded-full ${dotClasses}`} />
         {label}
