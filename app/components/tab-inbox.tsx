@@ -1,12 +1,24 @@
 "use client";
 import useSWR from "swr";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fetcher, formatDate } from "@/lib/fetcher";
 import { Idea } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 import { ConflictToast, type Conflict } from "./conflict-toast";
 import { InsightList } from "./insight-list";
+
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    setMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return mobile;
+}
 
 const TEST_PREFIX = "(test) ";
 type InboxView = "ideas" | "testing";
@@ -105,6 +117,8 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const isMobile = useIsMobile();
 
   async function pursue() {
     setBusy(true);
@@ -182,14 +196,33 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
           ))}
         </div>
       )}
-      <div className="mb-5">
-        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-success mb-2">Why this works</div>
-        <InsightList points={idea.why_it_works} tone="positive" />
-      </div>
-      <div className="mb-6">
-        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-warning mb-2">Devil&rsquo;s advocate</div>
-        <InsightList points={idea.devils_advocate} tone="cautionary" />
-      </div>
+      {isMobile && !expanded ? (
+        <button
+          onClick={() => setExpanded(true)}
+          className="mb-5 font-mono text-xs uppercase tracking-wider text-muted hover:text-text transition-colors"
+        >
+          Show analysis ↓
+        </button>
+      ) : (
+        <>
+          <div className="mb-5">
+            <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-success mb-2">Why this works</div>
+            <InsightList points={idea.why_it_works} tone="positive" />
+          </div>
+          <div className="mb-6">
+            <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-warning mb-2">Devil&rsquo;s advocate</div>
+            <InsightList points={idea.devils_advocate} tone="cautionary" />
+          </div>
+          {isMobile && (
+            <button
+              onClick={() => setExpanded(false)}
+              className="mb-5 font-mono text-xs uppercase tracking-wider text-muted hover:text-text transition-colors"
+            >
+              Hide analysis ↑
+            </button>
+          )}
+        </>
+      )}
 
       {!killing ? (
         <div className="flex gap-2">
