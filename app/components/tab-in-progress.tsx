@@ -418,7 +418,7 @@ function TaskSteps({ steps }: { steps: string[] }) {
     <div className="ml-7 mb-1">
       <button
         onClick={() => setOpen(!open)}
-        className="font-mono text-[0.625rem] text-accent/70 hover:text-accent"
+        className="font-mono text-[0.6875rem] text-accent/70 hover:text-accent"
       >
         {open ? "hide steps" : `${steps.length} steps`}
       </button>

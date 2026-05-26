@@ -211,7 +211,7 @@ function PlanTaskItem({ detail }: { detail: { task: string; steps: string[] } })
           {hasSteps && (
             <button
               onClick={() => setOpen(!open)}
-              className="ml-1.5 font-mono text-[0.625rem] text-accent/70 hover:text-accent"
+              className="ml-1.5 font-mono text-[0.6875rem] text-accent/70 hover:text-accent"
             >
               {open ? "hide steps" : `${detail.steps.length} steps`}
             </button>
