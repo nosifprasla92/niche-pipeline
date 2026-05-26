@@ -415,7 +415,7 @@ function TaskSteps({ steps }: { steps: string[] }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="ml-7 mb-1">
+    <div className={`ml-7 ${open ? "mb-3" : "mb-1"}`}>
       <button
         onClick={() => setOpen(!open)}
         className="font-mono text-[0.6875rem] text-accent/70 hover:text-accent"
