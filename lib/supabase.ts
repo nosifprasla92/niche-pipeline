@@ -88,6 +88,11 @@ export type Idea = {
   user_notes: string | null;
 };
 
+export type TaskDetail = {
+  task: string;
+  steps: string[];
+};
+
 export type BusinessPlan = {
   executive_summary?: string;
   target_customer?: string;
@@ -99,7 +104,7 @@ export type BusinessPlan = {
   };
   go_to_market_zero_paid?: string[];
   go_to_market_paid_after_10_customers?: string[];
-  launch_plan_12_weeks?: { weeks: string; title: string; tasks: string[] }[];
+  launch_plan_12_weeks?: { weeks: string; title: string; tasks: TaskDetail[] }[];
   tools_stack?: string[];
   financial_projection?: {
     months_1_3?: string;
@@ -109,6 +114,11 @@ export type BusinessPlan = {
   biggest_risks?: string[];
   kill_conditions?: string[];
 };
+
+export function normalizeTask(t: string | TaskDetail): TaskDetail {
+  if (typeof t === "string") return { task: t, steps: [] };
+  return t;
+}
 
 export type ResearchSourceDataPoint = {
   metric: string;

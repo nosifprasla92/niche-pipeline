@@ -1,7 +1,8 @@
 "use client";
+import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, formatDate } from "@/lib/fetcher";
-import { Idea, BusinessPlan } from "@/lib/supabase";
+import { Idea, BusinessPlan, normalizeTask } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 
@@ -129,8 +130,11 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
                 <div className="text-sm font-medium">
                   <span className="text-accent">Weeks {step.weeks}</span> · {step.title}
                 </div>
-                <ul className="list-disc ml-5 text-sm text-text/80 mt-1 leading-relaxed">
-                  {step.tasks?.map((t, j) => <li key={j}>{t}</li>)}
+                <ul className="mt-1 space-y-1">
+                  {step.tasks?.map((raw, j) => {
+                    const t = normalizeTask(raw as any);
+                    return <PlanTaskItem key={j} detail={t} />;
+                  })}
                 </ul>
               </li>
             ))}
@@ -191,6 +195,37 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
         </button>
       </div>
     </Card>
+  );
+}
+
+function PlanTaskItem({ detail }: { detail: { task: string; steps: string[] } }) {
+  const [open, setOpen] = useState(false);
+  const hasSteps = detail.steps.length > 0;
+
+  return (
+    <li className="text-sm text-text/80 leading-relaxed">
+      <div className="flex items-start gap-1.5">
+        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-text/30 shrink-0" />
+        <span className="flex-1">
+          {detail.task}
+          {hasSteps && (
+            <button
+              onClick={() => setOpen(!open)}
+              className="ml-1.5 font-mono text-[0.625rem] text-accent/70 hover:text-accent"
+            >
+              {open ? "hide steps" : `${detail.steps.length} steps`}
+            </button>
+          )}
+        </span>
+      </div>
+      {open && hasSteps && (
+        <ol className="ml-4 mt-1 mb-1 space-y-0.5 border-l border-accent/20 pl-3">
+          {detail.steps.map((s, i) => (
+            <li key={i} className="text-xs text-text/70 leading-relaxed">{s}</li>
+          ))}
+        </ol>
+      )}
+    </li>
   );
 }
 

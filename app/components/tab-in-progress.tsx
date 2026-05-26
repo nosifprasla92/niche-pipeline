@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import useSWR from "swr";
 import { fetcher, formatDate } from "@/lib/fetcher";
-import { Idea, BusinessPlan } from "@/lib/supabase";
+import { Idea, BusinessPlan, normalizeTask } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 import { Checkbox } from "./checkbox";
@@ -376,16 +376,20 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
                 </button>
                 {isExpanded && (
                   <ul className="mt-1 pl-1">
-                    {tasks.map((task, i) => {
+                    {tasks.map((raw, i) => {
                       const key = taskKey(phase, i);
+                      const detail = normalizeTask(raw as any);
                       return (
                         <li key={key}>
                           <Checkbox
                             checked={isChecked(key)}
                             onChange={(next) => toggleTask(key, next)}
-                            label={task}
+                            label={detail.task}
                             pending={pending.has(key)}
                           />
+                          {detail.steps.length > 0 && (
+                            <TaskSteps steps={detail.steps} />
+                          )}
                         </li>
                       );
                     })}
@@ -404,5 +408,27 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
         />
       )}
     </>
+  );
+}
+
+function TaskSteps({ steps }: { steps: string[] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="ml-7 mb-1">
+      <button
+        onClick={() => setOpen(!open)}
+        className="font-mono text-[0.625rem] text-accent/70 hover:text-accent"
+      >
+        {open ? "hide steps" : `${steps.length} steps`}
+      </button>
+      {open && (
+        <ol className="mt-1 mb-1 space-y-0.5 border-l border-accent/20 pl-3">
+          {steps.map((s, i) => (
+            <li key={i} className="text-xs text-text/70 leading-relaxed">{s}</li>
+          ))}
+        </ol>
+      )}
+    </div>
   );
 }
