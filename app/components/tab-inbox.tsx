@@ -1,24 +1,13 @@
 "use client";
 import useSWR from "swr";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { fetcher, formatDate } from "@/lib/fetcher";
 import { Idea } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 import { ConflictToast, type Conflict } from "./conflict-toast";
 import { InsightList } from "./insight-list";
-
-function useIsMobile() {
-  const [mobile, setMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
-    setMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return mobile;
-}
+import { useIsMobile } from "@/lib/use-mobile";
 
 const TEST_PREFIX = "(test) ";
 type InboxView = "ideas" | "testing";
