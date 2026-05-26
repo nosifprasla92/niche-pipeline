@@ -246,7 +246,7 @@ export default function Home() {
           </div>
         </div>
         <div className="flex flex-col items-start sm:items-end gap-1">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
             <SpendToggle />
             <RunsPanel open={runsOpen} onOpenChange={setRunsOpen} />
             <button
