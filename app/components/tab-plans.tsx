@@ -219,9 +219,12 @@ function PlanTaskItem({ detail }: { detail: { task: string; steps: string[] } })
         </span>
       </div>
       {open && hasSteps && (
-        <ol className="ml-4 mt-1 mb-1 space-y-0.5 border-l border-accent/20 pl-3">
+        <ol className="ml-4 mt-1.5 mb-2 space-y-2 border-l-2 border-accent/25 pl-4">
           {detail.steps.map((s, i) => (
-            <li key={i} className="text-xs text-text/70 leading-relaxed">{s}</li>
+            <li key={i} className="text-sm text-text/80 leading-relaxed">
+              <span className="font-mono text-[0.6875rem] text-accent/60 mr-1.5">{i + 1}.</span>
+              {s}
+            </li>
           ))}
         </ol>
       )}
