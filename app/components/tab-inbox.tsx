@@ -77,7 +77,7 @@ function SubTab({
   return (
     <button
       onClick={onClick}
-      className={`relative px-4 py-2 text-sm transition-colors ${
+      className={`relative px-4 py-3 sm:py-2 text-sm transition-colors ${
         active ? "text-text" : "text-muted hover:text-text"
       }`}
     >
