@@ -1,11 +1,23 @@
 "use client";
 import useSWR from "swr";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fetcher, formatDate } from "@/lib/fetcher";
 import { Idea } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 import { ConflictToast, type Conflict } from "./conflict-toast";
+
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    setMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return mobile;
+}
 
 export function TabResearching() {
   const { data, mutate } = useSWR<{ ideas: Idea[] }>(
@@ -34,6 +46,8 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const isMobile = useIsMobile();
 
   async function killPursuing() {
     setBusy(true);
@@ -203,24 +217,43 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
         />
       </div>
 
-      <Section title="Competitive landscape" titleColor="text-muted">{idea.competition_analysis}</Section>
-      <Section title="Competitor complaints" titleColor="text-warning">{idea.competitor_complaints}</Section>
-      <Section title="Effort to launch" titleColor="text-muted">{idea.effort_breakdown}</Section>
-      <Section title="Zero-paid path to first 10" titleColor="text-success">{idea.zero_paid_path}</Section>
+      {isMobile && !expanded ? (
+        <button
+          onClick={() => setExpanded(true)}
+          className="mb-5 py-2 font-mono text-xs uppercase tracking-wider text-muted hover:text-text transition-colors"
+        >
+          Show research details ↓
+        </button>
+      ) : (
+        <>
+          <Section title="Competitive landscape" titleColor="text-muted">{idea.competition_analysis}</Section>
+          <Section title="Competitor complaints" titleColor="text-warning">{idea.competitor_complaints}</Section>
+          <Section title="Effort to launch" titleColor="text-muted">{idea.effort_breakdown}</Section>
+          <Section title="Zero-paid path to first 10" titleColor="text-success">{idea.zero_paid_path}</Section>
+          {isMobile && (
+            <button
+              onClick={() => setExpanded(false)}
+              className="mb-5 py-2 font-mono text-xs uppercase tracking-wider text-muted hover:text-text transition-colors"
+            >
+              Hide research details ↑
+            </button>
+          )}
+        </>
+      )}
 
       {!killing ? (
         <div className="flex gap-2 mt-5">
           <button
             onClick={sendToValidation}
             disabled={busy}
-            className="px-4 py-2 text-sm rounded-md bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="px-5 py-2.5 sm:px-4 sm:py-2 text-sm rounded-md bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             Send to validation
           </button>
           <button
             onClick={() => setKilling(true)}
             disabled={busy}
-            className="px-4 py-2 text-sm rounded-md border border-border text-error hover:bg-border/50 transition-colors"
+            className="px-5 py-2.5 sm:px-4 sm:py-2 text-sm rounded-md border border-border text-error hover:bg-border/50 transition-colors"
           >
             Kill
           </button>
