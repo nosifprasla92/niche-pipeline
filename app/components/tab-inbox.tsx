@@ -199,7 +199,7 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
       {isMobile && !expanded ? (
         <button
           onClick={() => setExpanded(true)}
-          className="mb-5 font-mono text-xs uppercase tracking-wider text-muted hover:text-text transition-colors"
+          className="mb-5 py-2 font-mono text-xs uppercase tracking-wider text-muted hover:text-text transition-colors"
         >
           Show analysis ↓
         </button>
@@ -216,7 +216,7 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
           {isMobile && (
             <button
               onClick={() => setExpanded(false)}
-              className="mb-5 font-mono text-xs uppercase tracking-wider text-muted hover:text-text transition-colors"
+              className="mb-5 py-2 font-mono text-xs uppercase tracking-wider text-muted hover:text-text transition-colors"
             >
               Hide analysis ↑
             </button>
@@ -229,14 +229,14 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
           <button
             onClick={pursue}
             disabled={busy}
-            className="px-4 py-2 text-sm rounded-md bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="px-5 py-2.5 sm:px-4 sm:py-2 text-sm rounded-md bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             Pursue
           </button>
           <button
             onClick={() => setKilling(true)}
             disabled={busy}
-            className="px-4 py-2 text-sm rounded-md border border-border text-error hover:bg-border/50 transition-colors"
+            className="px-5 py-2.5 sm:px-4 sm:py-2 text-sm rounded-md border border-border text-error hover:bg-border/50 transition-colors"
           >
             Kill
           </button>
