@@ -213,10 +213,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen w-full max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      <header className="flex flex-wrap items-start justify-between gap-y-4 mb-10">
+    <div className="min-h-screen w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
+      <header className="flex flex-col sm:flex-row sm:flex-wrap sm:items-start sm:justify-between gap-y-4 mb-8 sm:mb-10">
         <div>
-          <h1 className="font-display text-4xl tracking-tight">Niche pipeline</h1>
+          <h1 className="font-display text-2xl sm:text-4xl tracking-tight">Niche pipeline</h1>
           {inFlight ? (
             <p className="font-mono text-xs mt-2 uppercase tracking-wider flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-warning animate-pulse" />
@@ -245,8 +245,8 @@ export default function Home() {
             <CostCard />
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col items-start sm:items-end gap-1">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <SpendToggle />
             <RunsPanel open={runsOpen} onOpenChange={setRunsOpen} />
             <button
@@ -293,7 +293,7 @@ export default function Home() {
       )}
 
       <nav
-        className="flex gap-1 mb-8 border-b border-border overflow-x-auto min-w-0"
+        className="flex gap-0.5 sm:gap-1 mb-6 sm:mb-8 border-b border-border overflow-x-auto min-w-0 -mx-4 px-4 sm:mx-0 sm:px-0"
         style={{ scrollbarWidth: "none" }}
       >
         {TABS.map((t) => {
@@ -302,7 +302,7 @@ export default function Home() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              className={`shrink-0 whitespace-nowrap px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors ${
                 tab === t.id
                   ? "border-text text-text"
                   : "border-transparent text-muted hover:text-text"

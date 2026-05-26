@@ -359,8 +359,8 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
                   className="w-full flex items-center justify-between gap-3 py-1 text-left"
                   aria-expanded={isExpanded}
                 >
-                  <h4 className={`font-display text-lg leading-tight flex-1 ${phaseDone ? "text-text/60" : ""}`}>
-                    <span className={`text-sm font-mono mr-2 ${phaseDone ? "text-success/60" : "text-accent"}`}>Weeks {phase.weeks}</span>
+                  <h4 className={`font-display text-base sm:text-lg leading-tight flex-1 min-w-0 ${phaseDone ? "text-text/60" : ""}`}>
+                    <span className={`text-xs sm:text-sm font-mono mr-2 ${phaseDone ? "text-success/60" : "text-accent"}`}>Weeks {phase.weeks}</span>
                     {phase.title}
                   </h4>
                   <span

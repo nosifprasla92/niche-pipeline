@@ -81,23 +81,25 @@ function ValidateCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
             Kill
           </button>
         ) : (
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
             <input
               autoFocus
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Reason (optional — becomes a dislike pattern)"
-              className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
+              className="w-full sm:flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
             />
-            <button
-              onClick={killValidating}
-              className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
-            >
-              Confirm
-            </button>
-            <button onClick={() => setKilling(false)} className="text-sm text-muted hover:text-text">
-              Cancel
-            </button>
+            <div className="flex gap-2 items-center">
+              <button
+                onClick={killValidating}
+                className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
+              >
+                Confirm
+              </button>
+              <button onClick={() => setKilling(false)} className="text-sm text-muted hover:text-text">
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </Card>
@@ -193,23 +195,25 @@ function ValidateCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
           </button>
         </div>
       ) : (
-        <div className="flex gap-2 items-center mt-5">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center mt-5">
           <input
             autoFocus
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason (becomes a dislike pattern)"
-            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
+            className="w-full sm:flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           />
-          <button
-            onClick={killValidated}
-            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
-          >
-            Confirm
-          </button>
-          <button onClick={() => setKilling(false)} className="text-sm text-muted hover:text-text">
-            Cancel
-          </button>
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={killValidated}
+              className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
+            >
+              Confirm
+            </button>
+            <button onClick={() => setKilling(false)} className="text-sm text-muted hover:text-text">
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 

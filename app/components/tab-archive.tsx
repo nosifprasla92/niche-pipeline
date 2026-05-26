@@ -32,29 +32,52 @@ export function TabArchive() {
 
   return (
     <div>
-      <div className="flex gap-2 mb-4 items-center flex-wrap">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            className={`px-3 py-1 text-sm rounded-sm border transition-colors ${
-              filter === f.id
-                ? "bg-text text-bg border-transparent"
-                : "border-border text-text hover:bg-border/50"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4 sm:items-center">
+        <div className="flex gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`px-3 py-1 text-sm rounded-sm border transition-colors ${
+                filter === f.id
+                  ? "bg-text text-bg border-transparent"
+                  : "border-border text-text hover:bg-border/50"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search titles…"
-          className="ml-auto text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
+          className="sm:ml-auto w-full sm:w-auto text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
         />
       </div>
 
-      <div className="border border-border rounded-md overflow-hidden bg-surface">
+      {/* Mobile: card list */}
+      <div className="sm:hidden space-y-2">
+        {filtered.map((idea) => (
+          <button
+            key={idea.id}
+            onClick={() => setOpen(idea)}
+            className="w-full text-left bg-surface border border-border rounded-md p-3 active:bg-border/30 transition-colors"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <StatusPill status={idea.status} />
+              <span className="font-mono text-xs text-muted">{formatDate(idea.updated_at)}</span>
+            </div>
+            <div className="text-sm">{idea.title}</div>
+          </button>
+        ))}
+        {filtered.length === 0 && (
+          <div className="py-8 text-center text-sm text-muted">No ideas match.</div>
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block border border-border rounded-md overflow-hidden bg-surface">
         <table className="w-full text-sm">
           <thead className="bg-border/40 text-left">
             <tr>
@@ -102,7 +125,7 @@ export function TabArchive() {
           onClick={() => setOpen(null)}
         >
           <div
-            className="absolute right-0 top-0 bottom-0 w-full max-w-xl bg-surface overflow-y-auto p-6 border-l border-border"
+            className="absolute right-0 top-0 bottom-0 w-full max-w-xl bg-surface overflow-y-auto p-4 sm:p-6 border-l border-border"
             onClick={(e) => e.stopPropagation()}
           >
             <button

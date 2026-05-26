@@ -77,7 +77,7 @@ export function TabInsights() {
   return (
     <div className="space-y-8 max-w-[720px]">
       {funnelMoved ? (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Stat label="Suggested (30d)" value={suggested} tone="muted" />
           <Stat label="Pursued" value={pursued} tone="accent" />
           <Stat label="Validated" value={validated} tone="info" />
@@ -103,7 +103,7 @@ export function TabInsights() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
         <PatternColumn
           title="Likes"
           count={likes.length}
@@ -128,37 +128,41 @@ export function TabInsights() {
           + Add preference
         </button>
       ) : (
-        <div className="flex gap-2 items-center">
-          <select
-            value={newType}
-            onChange={(e) => setNewType(e.target.value as "like" | "dislike")}
-            className="text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
-          >
-            <option value="dislike">Avoid</option>
-            <option value="like">Like</option>
-          </select>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <div className="flex gap-2 items-center">
+            <select
+              value={newType}
+              onChange={(e) => setNewType(e.target.value as "like" | "dislike")}
+              className="text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
+            >
+              <option value="dislike">Avoid</option>
+              <option value="like">Like</option>
+            </select>
+          </div>
           <input
             autoFocus
             value={newPattern}
             onChange={(e) => setNewPattern(e.target.value)}
             placeholder="e.g. avoid anything with physical inventory"
-            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
+            className="w-full sm:flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           />
-          <button
-            onClick={addPattern}
-            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
-          >
-            Add
-          </button>
-          <button
-            onClick={() => {
-              setAdding(false);
-              setNewPattern("");
-            }}
-            className="text-sm text-muted hover:text-text"
-          >
-            Cancel
-          </button>
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={addPattern}
+              className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
+            >
+              Add
+            </button>
+            <button
+              onClick={() => {
+                setAdding(false);
+                setNewPattern("");
+              }}
+              className="text-sm text-muted hover:text-text"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -186,9 +190,9 @@ const STAT_TONE: Record<string, string> = {
 
 function Stat({ label, value, tone = "muted" }: { label: string; value: number; tone?: string }) {
   return (
-    <div className="border border-border rounded-md p-4 bg-surface">
+    <div className="border border-border rounded-md p-3 sm:p-4 bg-surface">
       <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">{label}</div>
-      <div className={`font-display text-3xl ${value > 0 ? (STAT_TONE[tone] ?? "") : ""}`}>{value}</div>
+      <div className={`font-display text-2xl sm:text-3xl ${value > 0 ? (STAT_TONE[tone] ?? "") : ""}`}>{value}</div>
     </div>
   );
 }

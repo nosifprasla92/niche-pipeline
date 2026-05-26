@@ -23,7 +23,7 @@ export function ConflictToast({
   cancelling: boolean;
 }) {
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-md bg-surface border border-warning/40 rounded-md shadow-lg p-4">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 sm:max-w-md bg-surface border border-warning/40 rounded-md shadow-lg p-4">
       <div className="text-sm mb-3 leading-relaxed">{message}</div>
       <div className="flex gap-2 justify-end">
         {canCancel && (
