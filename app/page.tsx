@@ -303,7 +303,7 @@ export default function Home() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors ${
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-3.5 sm:py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors ${
                   tab === t.id
                     ? "border-text text-text"
                     : "border-transparent text-muted hover:text-text"
