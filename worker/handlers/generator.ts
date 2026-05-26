@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   supabase,
   type FeedbackPattern,
+  type HandlerResult,
   type IncomeBracket,
   type RoutineRun,
 } from "../../lib/supabase";
@@ -121,7 +122,7 @@ Output shape (JSON):
 }`;
 }
 
-export async function handleGenerator(_run: RoutineRun): Promise<string> {
+export async function handleGenerator(_run: RoutineRun): Promise<HandlerResult> {
   const sixtyDaysAgo = new Date(
     Date.now() - 60 * 24 * 60 * 60 * 1000,
   ).toISOString();
@@ -157,7 +158,7 @@ export async function handleGenerator(_run: RoutineRun): Promise<string> {
   const lastBracket = recent[0]?.income_bracket ?? null;
   const nextBracket = altBracket(lastBracket);
 
-  const out = await generateStructured({
+  const { value: out, cost } = await generateStructured({
     prompt: buildPrompt(recent, killed, patterns, profileSummary, nextBracket),
     schema: GeneratorSchema,
     model: "opus",
@@ -180,5 +181,8 @@ export async function handleGenerator(_run: RoutineRun): Promise<string> {
   if (error) throw new Error(`insert ideas: ${error.message}`);
 
   const ids = (inserted ?? []).map((r) => r.id);
-  return `Generated ${ids.length} ideas (${ids.join(", ")})`;
+  return {
+    summary: `Generated ${ids.length} ideas (${ids.join(", ")})`,
+    cost,
+  };
 }

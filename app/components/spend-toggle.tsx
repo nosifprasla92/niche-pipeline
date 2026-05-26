@@ -65,7 +65,7 @@ export function SpendToggle() {
       </button>
       {open && data && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-16"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-2 pt-8 sm:p-4 sm:pt-16"
           onClick={() => setOpen(false)}
         >
           <div

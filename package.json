@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest",
     "test:run": "vitest run",
-    "worker": "tsx worker/index.ts",
+    "worker": "tsx watch worker/index.ts",
     "worker:once": "tsx worker/index.ts --once"
   },
   "dependencies": {

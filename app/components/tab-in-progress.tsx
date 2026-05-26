@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import useSWR from "swr";
 import { fetcher, formatDate } from "@/lib/fetcher";
-import { Idea, BusinessPlan } from "@/lib/supabase";
+import { Idea, BusinessPlan, normalizeTask } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 import { Checkbox } from "./checkbox";
@@ -50,7 +50,7 @@ export function TabInProgress() {
         <div className="text-error mb-2">Couldn&rsquo;t load execution plans.</div>
         <button
           onClick={() => mutate()}
-          className="px-3 py-1.5 text-xs rounded-md border border-border text-text hover:bg-border/60 transition-colors"
+          className="px-3 py-2 text-xs rounded-md border border-border text-text hover:bg-border/60 transition-colors"
         >
           Retry
         </button>
@@ -61,8 +61,6 @@ export function TabInProgress() {
   if (!data) {
     return (
       <div className="space-y-6 max-w-[720px]">
-        <SkeletonPlan />
-        <SkeletonPlan />
         <SkeletonPlan />
       </div>
     );
@@ -353,19 +351,19 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
             const phaseDone = tasks.length > 0 && phaseChecked === tasks.length;
             const isActive = !phaseDone;
             return (
-              <div key={phase.weeks} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
+              <div key={phase.weeks} className={`border-t pt-3 first:border-t-0 first:pt-0 ${phaseDone ? "border-success/20" : "border-border"}`}>
                 <button
                   onClick={() => toggleExpanded(phase.weeks)}
                   className="w-full flex items-center justify-between gap-3 py-1 text-left"
                   aria-expanded={isExpanded}
                 >
-                  <h4 className="font-display text-lg leading-tight flex-1">
-                    <span className="text-muted text-sm font-mono mr-2">Weeks {phase.weeks}</span>
+                  <h4 className={`font-display text-base sm:text-lg leading-tight flex-1 min-w-0 ${phaseDone ? "text-text/60" : ""}`}>
+                    <span className={`text-xs sm:text-sm font-mono mr-2 ${phaseDone ? "text-success/60" : "text-accent"}`}>Weeks {phase.weeks}</span>
                     {phase.title}
                   </h4>
                   <span
                     className={`font-mono text-xs whitespace-nowrap ${
-                      phaseDone ? "text-muted" : isActive ? "text-accent" : "text-muted"
+                      phaseDone ? "text-success" : isActive ? "text-accent" : "text-muted"
                     }`}
                   >
                     {phaseChecked}/{tasks.length} done{phaseDone ? " ✓" : ""}
@@ -376,16 +374,20 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
                 </button>
                 {isExpanded && (
                   <ul className="mt-1 pl-1">
-                    {tasks.map((task, i) => {
+                    {tasks.map((raw, i) => {
                       const key = taskKey(phase, i);
+                      const detail = normalizeTask(raw as any);
                       return (
                         <li key={key}>
                           <Checkbox
                             checked={isChecked(key)}
                             onChange={(next) => toggleTask(key, next)}
-                            label={task}
+                            label={detail.task}
                             pending={pending.has(key)}
                           />
+                          {detail.steps.length > 0 && (
+                            <TaskSteps steps={detail.steps} />
+                          )}
                         </li>
                       );
                     })}
@@ -404,5 +406,30 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
         />
       )}
     </>
+  );
+}
+
+function TaskSteps({ steps }: { steps: string[] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className={`ml-7 ${open ? "mb-3" : "mb-1"}`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="font-mono text-[0.6875rem] text-accent/70 hover:text-accent"
+      >
+        {open ? "hide steps" : `${steps.length} steps`}
+      </button>
+      {open && (
+        <ol className="mt-1.5 mb-2 space-y-2 border-l-2 border-accent/25 pl-4">
+          {steps.map((s, i) => (
+            <li key={i} className="text-sm text-text/80 leading-relaxed">
+              <span className="font-mono text-[0.6875rem] text-accent/60 mr-1.5">{i + 1}.</span>
+              {s}
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
   );
 }

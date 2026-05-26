@@ -32,7 +32,7 @@ export function CelebrationToast({
   const secondsLeft = Math.ceil(remaining / 1000);
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md bg-surface border border-border rounded-md shadow-lg p-5">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 sm:max-w-md bg-surface border border-border rounded-md shadow-lg p-4 sm:p-5">
       <div className="font-display text-xl leading-tight mb-1">
         You launched! <span aria-hidden="true">🎉</span>
       </div>
@@ -50,7 +50,7 @@ export function CelebrationToast({
             await onUndo();
           }}
           disabled={undoing || remaining <= 0}
-          className="px-3 py-1.5 text-xs rounded-md border border-border text-text hover:bg-border/60 disabled:opacity-50 transition-colors"
+          className="px-3 py-2 text-xs rounded-md border border-border text-text hover:bg-border/60 disabled:opacity-50 transition-colors"
         >
           {undoing ? "Undoing…" : "Undo"}
         </button>

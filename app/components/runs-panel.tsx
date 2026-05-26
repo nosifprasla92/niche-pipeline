@@ -131,7 +131,7 @@ function RunsDrawer({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-16"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-2 pt-8 sm:p-4 sm:pt-16"
       onClick={onClose}
     >
       <div
@@ -154,14 +154,25 @@ function RunsDrawer({
           <div className="p-6 text-sm text-muted">No routine runs yet.</div>
         ) : (
           <div className="divide-y divide-border">
-            {runs.map((r) => (
-              <RunRow key={r.id} run={r} />
+            {runs.map((r, i) => (
+              <RunRow key={r.id} run={r} resolvedBy={findResolver(runs, i)} />
             ))}
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function findResolver(runs: RoutineRun[], i: number): RoutineRun | null {
+  const r = runs[i];
+  if (!FAILED.includes(r.status)) return null;
+  for (let j = i - 1; j >= 0; j--) {
+    const later = runs[j];
+    if (later.routine_name !== r.routine_name) continue;
+    if (later.status === "completed") return later;
+  }
+  return null;
 }
 
 function humanizeError(raw: string): { primary: string; raw: string } {
@@ -183,12 +194,16 @@ function humanizeError(raw: string): { primary: string; raw: string } {
   return { primary: raw, raw };
 }
 
-function ErrorBlock({ message }: { message: string }) {
+function ErrorBlock({ message, resolved }: { message: string; resolved: boolean }) {
   const { primary, raw } = humanizeError(message);
   const showRaw = raw !== primary;
   return (
     <div className="mt-1">
-      <div className="text-xs text-error leading-relaxed">{primary}</div>
+      <div
+        className={`text-xs leading-relaxed ${resolved ? "text-muted line-through decoration-muted/40" : "text-error"}`}
+      >
+        {primary}
+      </div>
       {showRaw && (
         <details className="mt-1">
           <summary className="font-mono text-[0.6875rem] text-muted cursor-pointer hover:text-text select-none">
@@ -203,10 +218,17 @@ function ErrorBlock({ message }: { message: string }) {
   );
 }
 
-function RunRow({ run }: { run: RoutineRun }) {
+function RunRow({
+  run,
+  resolvedBy,
+}: {
+  run: RoutineRun;
+  resolvedBy: RoutineRun | null;
+}) {
   const dur = duration(run.started_at, run.finished_at);
+  const resolved = resolvedBy !== null;
   return (
-    <div className="px-4 py-3">
+    <div className={`px-4 py-3 ${resolved ? "opacity-60" : ""}`}>
       <div className="flex items-center gap-2 mb-1 flex-wrap">
         <span className="text-sm font-medium">{run.routine_name}</span>
         <span
@@ -214,6 +236,14 @@ function RunRow({ run }: { run: RoutineRun }) {
         >
           {run.status}
         </span>
+        {resolvedBy && (
+          <span
+            className="font-mono text-[0.6875rem] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-border text-success"
+            title={`A later ${resolvedBy.routine_name} run completed ${timeAgo(resolvedBy.started_at)}`}
+          >
+            ✓ resolved
+          </span>
+        )}
         <span className="font-mono text-xs text-muted">
           {timeAgo(run.started_at)}
           {dur && ` · ${dur}`}
@@ -225,7 +255,9 @@ function RunRow({ run }: { run: RoutineRun }) {
           {run.summary}
         </div>
       )}
-      {run.error_message && <ErrorBlock message={run.error_message} />}
+      {run.error_message && (
+        <ErrorBlock message={run.error_message} resolved={resolved} />
+      )}
     </div>
   );
 }

@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { supabase, type RoutineRun } from "../../lib/supabase";
+import {
+  supabase,
+  type HandlerResult,
+  type RoutineRun,
+} from "../../lib/supabase";
 import { generateStructured } from "../claude";
 
 const KILL_WINDOW_DAYS = 14;
@@ -71,7 +75,7 @@ Output shape (JSON):
 }`;
 }
 
-export async function handlePostmortem(_run: RoutineRun): Promise<string> {
+export async function handlePostmortem(_run: RoutineRun): Promise<HandlerResult> {
   const cutoff = new Date(
     Date.now() - KILL_WINDOW_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
@@ -98,10 +102,13 @@ export async function handlePostmortem(_run: RoutineRun): Promise<string> {
   const likes = allPatterns.filter((p) => p.pattern_type === "like");
 
   if (killed.length === 0 && dislikes.length === 0) {
-    return "No killed ideas and no dislike patterns to analyze.";
+    return {
+      summary: "No killed ideas and no dislike patterns to analyze.",
+      cost: null,
+    };
   }
 
-  const object = await generateStructured({
+  const { value: object, cost } = await generateStructured({
     prompt: buildPrompt(killed, dislikes, likes),
     schema: PostmortemSchema,
     model: "sonnet",
@@ -142,5 +149,8 @@ export async function handlePostmortem(_run: RoutineRun): Promise<string> {
     .eq("id", 1);
   if (profErr) throw new Error(`update profile: ${profErr.message}`);
 
-  return `Clustered ${killed.length} killed ideas + ${dislikes.length} existing dislikes into ${object.new_patterns.length} patterns. Replaced ${toDelete.length}. Profile refreshed.`;
+  return {
+    summary: `Clustered ${killed.length} killed ideas + ${dislikes.length} existing dislikes into ${object.new_patterns.length} patterns. Replaced ${toDelete.length}. Profile refreshed.`,
+    cost,
+  };
 }

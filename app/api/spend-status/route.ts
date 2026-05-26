@@ -10,7 +10,6 @@ import { logEvent } from "@/lib/log";
 //   brake (HALT_ALL_AI) is intentionally NOT writable from here — that one
 //   is the "I can't reach Supabase" backstop and must stay flippable only
 //   in Vercel env vars.
-// Auth: relies on the password proxy that fronts every non-cron route.
 
 export const dynamic = "force-dynamic";
 

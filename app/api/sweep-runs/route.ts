@@ -11,7 +11,7 @@ import { logEvent } from "@/lib/log";
 // insertTriggered also runs the same sweep inline before claiming a slot,
 // so triggers self-heal between cron sweeps.
 //
-// Auth: Bearer CRON_SECRET via proxy.ts (Vercel Cron sends this header).
+// Auth: Bearer CRON_SECRET (Vercel Cron sends this header).
 // Schedule: see vercel.json — daily on Hobby (the cron tier ceiling). The
 // lazy auto-sweep inside insertTriggered (lib/routine-runs.ts) handles stale
 // rows between cron runs, so daily is safe; tighten to */15 on Pro.

@@ -1,7 +1,8 @@
 "use client";
+import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, formatDate } from "@/lib/fetcher";
-import { Idea, BusinessPlan } from "@/lib/supabase";
+import { Idea, BusinessPlan, normalizeTask } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 
@@ -76,29 +77,29 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
         </div>
       )}
 
-      <PlanSection title="Executive summary">{plan.executive_summary}</PlanSection>
-      <PlanSection title="Target customer">{plan.target_customer}</PlanSection>
-      <PlanSection title="Value proposition">{plan.value_proposition}</PlanSection>
+      <PlanSection title="Executive summary" titleColor="text-accent">{plan.executive_summary}</PlanSection>
+      <PlanSection title="Target customer" titleColor="text-info">{plan.target_customer}</PlanSection>
+      <PlanSection title="Value proposition" titleColor="text-success">{plan.value_proposition}</PlanSection>
 
       {plan.offer && (
-        <div className="mb-4">
-          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Offer</div>
-          <div className="text-sm space-y-1 leading-relaxed">
-            {plan.offer.product_or_service && <div><b>Product:</b> {plan.offer.product_or_service}</div>}
-            {plan.offer.pricing_model && <div><b>Pricing:</b> {plan.offer.pricing_model}</div>}
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-accent mb-2">Offer</div>
+          <div className="text-sm space-y-1.5 leading-relaxed max-w-[65ch]">
+            {plan.offer.product_or_service && <div><span className="font-medium text-text">Product:</span> {plan.offer.product_or_service}</div>}
+            {plan.offer.pricing_model && <div><span className="font-medium text-text">Pricing:</span> {plan.offer.pricing_model}</div>}
             {plan.offer.landing_page_strategy && (
-              <div><b>Landing page:</b> {plan.offer.landing_page_strategy}</div>
+              <div><span className="font-medium text-text">Landing page:</span> {plan.offer.landing_page_strategy}</div>
             )}
           </div>
         </div>
       )}
 
       {plan.go_to_market_zero_paid && plan.go_to_market_zero_paid.length > 0 && (
-        <div className="mb-4">
-          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-success mb-2">
             Go to market — zero paid (first 10 customers)
           </div>
-          <ul className="list-disc ml-5 text-sm space-y-0.5 leading-relaxed">
+          <ul className="list-disc ml-5 text-sm space-y-1 leading-relaxed max-w-[65ch]">
             {plan.go_to_market_zero_paid.map((g, i) => (
               <li key={i}>{g}</li>
             ))}
@@ -108,11 +109,11 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
 
       {plan.go_to_market_paid_after_10_customers &&
         plan.go_to_market_paid_after_10_customers.length > 0 && (
-          <div className="mb-4">
-            <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">
+          <div className="mb-5">
+            <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-info mb-2">
               Go to market — paid (after 10 customers)
             </div>
-            <ul className="list-disc ml-5 text-sm space-y-0.5 leading-relaxed">
+            <ul className="list-disc ml-5 text-sm space-y-1 leading-relaxed max-w-[65ch]">
               {plan.go_to_market_paid_after_10_customers.map((g, i) => (
                 <li key={i}>{g}</li>
               ))}
@@ -121,16 +122,19 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
         )}
 
       {plan.launch_plan_12_weeks && plan.launch_plan_12_weeks.length > 0 && (
-        <div className="mb-4">
-          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">12-week launch plan</div>
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-accent mb-2">12-week launch plan</div>
           <ol className="space-y-3">
             {plan.launch_plan_12_weeks.map((step, i) => (
-              <li key={i} className="border-l-2 border-border pl-3">
+              <li key={i} className="border-l-2 border-accent/30 pl-3">
                 <div className="text-sm font-medium">
-                  Weeks {step.weeks} · {step.title}
+                  <span className="text-accent">Weeks {step.weeks}</span> · {step.title}
                 </div>
-                <ul className="list-disc ml-5 text-sm text-muted mt-1 leading-relaxed">
-                  {step.tasks?.map((t, j) => <li key={j}>{t}</li>)}
+                <ul className="mt-1 space-y-1">
+                  {step.tasks?.map((raw, j) => {
+                    const t = normalizeTask(raw as any);
+                    return <PlanTaskItem key={j} detail={t} />;
+                  })}
                 </ul>
               </li>
             ))}
@@ -139,8 +143,8 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
       )}
 
       {plan.tools_stack && plan.tools_stack.length > 0 && (
-        <div className="mb-4">
-          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Tools stack</div>
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">Tools stack</div>
           <ul className="list-disc ml-5 text-sm leading-relaxed">
             {plan.tools_stack.map((t, i) => <li key={i}>{t}</li>)}
           </ul>
@@ -148,29 +152,29 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
       )}
 
       {plan.financial_projection && (
-        <div className="mb-4">
-          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Financial projection</div>
-          <div className="text-sm space-y-1 leading-relaxed">
-            {plan.financial_projection.months_1_3 && <div><b>Months 1–3:</b> {plan.financial_projection.months_1_3}</div>}
-            {plan.financial_projection.months_4_6 && <div><b>Months 4–6:</b> {plan.financial_projection.months_4_6}</div>}
-            {plan.financial_projection.month_12 && <div><b>Month 12:</b> {plan.financial_projection.month_12}</div>}
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-success mb-2">Financial projection</div>
+          <div className="text-sm space-y-1.5 leading-relaxed max-w-[65ch]">
+            {plan.financial_projection.months_1_3 && <div><span className="font-medium text-text">Months 1–3:</span> {plan.financial_projection.months_1_3}</div>}
+            {plan.financial_projection.months_4_6 && <div><span className="font-medium text-text">Months 4–6:</span> {plan.financial_projection.months_4_6}</div>}
+            {plan.financial_projection.month_12 && <div><span className="font-medium text-text">Month 12:</span> {plan.financial_projection.month_12}</div>}
           </div>
         </div>
       )}
 
       {plan.biggest_risks && plan.biggest_risks.length > 0 && (
-        <div className="mb-4">
-          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Biggest risks</div>
-          <ul className="list-disc ml-5 text-sm leading-relaxed">
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-warning mb-2">Biggest risks</div>
+          <ul className="list-disc ml-5 text-sm leading-relaxed marker:text-warning/50">
             {plan.biggest_risks.map((r, i) => <li key={i}>{r}</li>)}
           </ul>
         </div>
       )}
 
       {plan.kill_conditions && plan.kill_conditions.length > 0 && (
-        <div className="mb-4">
-          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">Kill conditions</div>
-          <ul className="list-disc ml-5 text-sm leading-relaxed">
+        <div className="mb-5">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-error mb-2">Kill conditions</div>
+          <ul className="list-disc ml-5 text-sm leading-relaxed marker:text-error/50">
             {plan.kill_conditions.map((c, i) => <li key={i}>{c}</li>)}
           </ul>
         </div>
@@ -179,13 +183,13 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
       <div className="flex gap-2 mt-5">
         <button
           onClick={() => setStatus("in_progress")}
-          className="px-4 py-1.5 text-sm rounded-md bg-accent text-white hover:opacity-90 transition-opacity"
+          className="px-4 py-2 text-sm rounded-md bg-accent text-white hover:opacity-90 transition-opacity"
         >
           Start executing
         </button>
         <button
           onClick={() => setStatus("launched")}
-          className="px-4 py-1.5 text-sm rounded-md border border-border text-text hover:bg-border/60 transition-colors"
+          className="px-4 py-2 text-sm rounded-md border border-border text-text hover:bg-border/60 transition-colors"
         >
           Skip to launched
         </button>
@@ -194,12 +198,46 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
   );
 }
 
-function PlanSection({ title, children }: { title: string; children?: React.ReactNode }) {
+function PlanTaskItem({ detail }: { detail: { task: string; steps: string[] } }) {
+  const [open, setOpen] = useState(false);
+  const hasSteps = detail.steps.length > 0;
+
+  return (
+    <li className="text-sm text-text/80 leading-relaxed">
+      <div className="flex items-start gap-1.5">
+        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-text/30 shrink-0" />
+        <span className="flex-1">
+          {detail.task}
+          {hasSteps && (
+            <button
+              onClick={() => setOpen(!open)}
+              className="ml-1.5 font-mono text-[0.6875rem] text-accent/70 hover:text-accent"
+            >
+              {open ? "hide steps" : `${detail.steps.length} steps`}
+            </button>
+          )}
+        </span>
+      </div>
+      {open && hasSteps && (
+        <ol className="ml-4 mt-1.5 mb-2 space-y-2 border-l-2 border-accent/25 pl-4">
+          {detail.steps.map((s, i) => (
+            <li key={i} className="text-sm text-text/80 leading-relaxed">
+              <span className="font-mono text-[0.6875rem] text-accent/60 mr-1.5">{i + 1}.</span>
+              {s}
+            </li>
+          ))}
+        </ol>
+      )}
+    </li>
+  );
+}
+
+function PlanSection({ title, titleColor = "text-muted", children }: { title: string; titleColor?: string; children?: React.ReactNode }) {
   if (!children) return null;
   return (
-    <div className="mb-4">
-      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-1.5">{title}</div>
-      <p className="text-sm leading-relaxed">{children}</p>
+    <div className="mb-5">
+      <div className={`font-mono text-[0.6875rem] uppercase tracking-wider ${titleColor} mb-2`}>{title}</div>
+      <p className="text-sm leading-relaxed whitespace-pre-line max-w-[65ch]">{children}</p>
     </div>
   );
 }

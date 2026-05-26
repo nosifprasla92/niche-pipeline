@@ -169,26 +169,26 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
         <span className="font-mono text-xs text-muted">{formatDate(idea.created_at)}</span>
       </div>
       <h3 className="font-display text-2xl leading-tight mb-3">{idea.title}</h3>
-      <p className="text-base text-text/90 leading-relaxed mb-4">{idea.description}</p>
+      <p className="text-base text-text/90 leading-relaxed mb-4 whitespace-pre-line max-w-[65ch]">{idea.description}</p>
       {idea.tags && idea.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-5">
           {idea.tags.map((t) => (
             <span
               key={t}
-              className="font-mono text-[0.6875rem] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-border text-muted"
+              className="font-mono text-[0.6875rem] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-accent/8 text-accent/80"
             >
               {t}
             </span>
           ))}
         </div>
       )}
-      <div className="mb-4">
-        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">Why this works</div>
-        <InsightList points={idea.why_it_works} />
-      </div>
       <div className="mb-5">
-        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted mb-2">Devil&rsquo;s advocate</div>
-        <InsightList points={idea.devils_advocate} />
+        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-success mb-2">Why this works</div>
+        <InsightList points={idea.why_it_works} tone="positive" />
+      </div>
+      <div className="mb-6">
+        <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-warning mb-2">Devil&rsquo;s advocate</div>
+        <InsightList points={idea.devils_advocate} tone="cautionary" />
       </div>
 
       {!killing ? (
@@ -196,40 +196,42 @@ function InboxCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
           <button
             onClick={pursue}
             disabled={busy}
-            className="px-4 py-1.5 text-sm rounded-md bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="px-4 py-2 text-sm rounded-md bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             Pursue
           </button>
           <button
             onClick={() => setKilling(true)}
             disabled={busy}
-            className="px-4 py-1.5 text-sm rounded-md border border-border text-error hover:bg-border/50 transition-colors"
+            className="px-4 py-2 text-sm rounded-md border border-border text-error hover:bg-border/50 transition-colors"
           >
             Kill
           </button>
         </div>
       ) : (
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <input
             autoFocus
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Why kill? (becomes a dislike pattern)"
-            className="flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
+            className="w-full sm:flex-1 text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
           />
-          <button
-            onClick={kill}
-            disabled={busy}
-            className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
-          >
-            Confirm
-          </button>
-          <button
-            onClick={() => setKilling(false)}
-            className="text-sm text-muted hover:text-text"
-          >
-            Cancel
-          </button>
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={kill}
+              disabled={busy}
+              className="px-4 py-1.5 text-sm rounded-md bg-text text-bg hover:opacity-90 transition-opacity"
+            >
+              Confirm
+            </button>
+            <button
+              onClick={() => setKilling(false)}
+              className="text-sm text-muted hover:text-text"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 

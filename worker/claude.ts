@@ -1,5 +1,6 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { z, ZodType } from "zod";
+import type { CostPayload } from "../lib/supabase";
 
 // Thin wrapper around the Claude Agent SDK that turns a prompt + Zod schema
 // into a validated object. Authenticates via the user's Max OAuth session
@@ -34,11 +35,34 @@ export type GenerateOptions<S extends ZodType> = {
   timeoutMs?: number;
 };
 
-export const DEFAULT_TIMEOUT_MS = 15 * 60_000;
+export const DEFAULT_TIMEOUT_MS = 8 * 60_000;
+
+/**
+ * Result returned by `generateStructured`. `value` is the Zod-parsed object
+ * the caller asked for. `cost` is the SDK's reported token + cost data,
+ * coalesced to NULLs when the SDK didn't include `usage`. Cost is decorative —
+ * never let it block run completion, never throw from the cost path.
+ */
+export type GenerateResult<T> = {
+  value: T;
+  cost: CostPayload;
+};
+
+const EMPTY_COST: CostPayload = {
+  input_tokens: null,
+  output_tokens: null,
+  cost_usd: null,
+};
+
+function safeNumber(v: unknown): number | null {
+  if (typeof v !== "number") return null;
+  if (!Number.isFinite(v)) return null;
+  return v;
+}
 
 export async function generateStructured<S extends ZodType>(
   opts: GenerateOptions<S>,
-): Promise<z.infer<S>> {
+): Promise<GenerateResult<z.infer<S>>> {
   const jsonInstruction =
     "\n\nRespond with ONLY a valid JSON object matching the structure the prompt describes. " +
     "No prose before or after. No markdown code fences. No commentary. " +
@@ -47,12 +71,15 @@ export async function generateStructured<S extends ZodType>(
 
   const tries = (opts.maxRetries ?? 1) + 1;
   let lastErr: unknown = null;
+  let lastCost: CostPayload = EMPTY_COST;
 
   for (let attempt = 1; attempt <= tries; attempt++) {
     try {
-      const text = await runQuery(fullPrompt, opts);
+      const { text, cost } = await runQuery(fullPrompt, opts);
+      lastCost = cost;
       const json = extractJson(text);
-      return opts.schema.parse(json);
+      const value = opts.schema.parse(json);
+      return { value, cost };
     } catch (err) {
       lastErr = err;
       if (attempt < tries) {
@@ -61,16 +88,24 @@ export async function generateStructured<S extends ZodType>(
     }
   }
 
+  // We attribute the last attempt's cost to the failed run — the model still
+  // consumed tokens on the (parse-rejected) generation, so writing 0 would
+  // under-report. lastCost is EMPTY_COST if the very first runQuery threw
+  // before completing, which is correct.
+  void lastCost;
   throw lastErr instanceof Error
     ? lastErr
     : new Error("generateStructured: unknown failure");
 }
 
+type RunQueryResult = { text: string; cost: CostPayload };
+
 async function runQuery<S extends ZodType>(
   prompt: string,
   opts: GenerateOptions<S>,
-): Promise<string> {
+): Promise<RunQueryResult> {
   let finalText = "";
+  let cost: CostPayload = EMPTY_COST;
   let errorText: string | null = null;
 
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -104,6 +139,20 @@ async function runQuery<S extends ZodType>(
         } else {
           errorText = `Claude returned ${msg.subtype}`;
         }
+        // The terminal `result` message carries aggregated usage + cost
+        // regardless of subtype. Capture defensively — SDK shape can drift
+        // and these fields are decorative. Any missing/non-finite value
+        // becomes NULL; throwing here would defeat the purpose of cost
+        // tracking.
+        const m = msg as unknown as {
+          total_cost_usd?: unknown;
+          usage?: { input_tokens?: unknown; output_tokens?: unknown };
+        };
+        cost = {
+          input_tokens: safeNumber(m.usage?.input_tokens),
+          output_tokens: safeNumber(m.usage?.output_tokens),
+          cost_usd: safeNumber(m.total_cost_usd),
+        };
       }
     }
   } finally {
@@ -117,7 +166,7 @@ async function runQuery<S extends ZodType>(
   }
   if (errorText) throw new Error(errorText);
   if (!finalText) throw new Error("Claude returned no result text");
-  return finalText;
+  return { text: finalText, cost };
 }
 
 function extractJson(text: string): unknown {

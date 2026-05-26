@@ -1,5 +1,6 @@
 import {
   supabase,
+  type CostPayload,
   type RoutineName,
   type RoutineRun,
   type RoutineRunStatus,
@@ -154,14 +155,21 @@ export async function markFireFailed(
 export async function markCompleted(
   id: number,
   summary: string,
+  cost: CostPayload | null = null,
 ): Promise<void> {
+  const update: Record<string, unknown> = {
+    status: "completed",
+    finished_at: new Date().toISOString(),
+    summary,
+  };
+  if (cost) {
+    update.input_tokens = cost.input_tokens;
+    update.output_tokens = cost.output_tokens;
+    update.cost_usd = cost.cost_usd;
+  }
   const { error } = await supabase
     .from("routine_runs")
-    .update({
-      status: "completed",
-      finished_at: new Date().toISOString(),
-      summary,
-    })
+    .update(update)
     .eq("id", id);
   if (error) {
     console.error(`[routine-runs] markCompleted(${id}) failed:`, error.message);

@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   supabase,
   type FeedbackPattern,
+  type HandlerResult,
   type Idea,
   type RoutineRun,
 } from "../../lib/supabase";
@@ -12,10 +13,15 @@ const BRACKET_MRR_CEILING = {
   business: 16000,
 } as const;
 
+const TaskDetailSchema = z.object({
+  task: z.string().min(3).max(600),
+  steps: z.array(z.string().min(10).max(1000)).min(2).max(8),
+});
+
 const LaunchWeekSchema = z.object({
   weeks: z.string().min(1).max(20),
   title: z.string().min(3).max(160),
-  tasks: z.array(z.string().min(3).max(600)).min(1).max(10),
+  tasks: z.array(TaskDetailSchema).min(1).max(10),
 });
 
 const BusinessPlanSchema = z.object({
@@ -82,6 +88,7 @@ GUARDRAILS:
 - Split go-to-market into TWO phases: zero_paid (first 10 customers) and paid_after_10 (scale once you've validated unit economics).
 - financial_projection.month_12 MRR must not exceed $${ceiling}. If you'd otherwise project higher, anchor at the ceiling and explain in months_4_6 why scaling slowed.
 - launch_plan_12_weeks: 4 phases of ~3 weeks each (weeks 1-3, 4-6, 7-9, 10-12). Each phase has a title and 3-6 concrete tasks.
+- Each task has a short label ("task") AND 2-8 detailed step-by-step instructions ("steps"). Steps must be specific enough that the founder can follow them as a daily/weekly checklist — include exact tools, URLs, copy templates, commands, metric thresholds, and time estimates where relevant. Write steps in imperative form ("Open Stripe dashboard…", "Draft 3 variations of…").
 - first_actions: exactly 3 TODOs the founder should do TODAY. Specific. Verb-first. ≤ 30 words each.
 
 Output shape (JSON):
@@ -98,7 +105,10 @@ Output shape (JSON):
     "go_to_market_zero_paid": ["...", "...", "..."],
     "go_to_market_paid_after_10_customers": ["...", "..."],
     "launch_plan_12_weeks": [
-      {"weeks": "1-3", "title": "...", "tasks": ["...", "..."]},
+      {"weeks": "1-3", "title": "...", "tasks": [
+        {"task": "Short task label", "steps": ["Step 1: do X using Y…", "Step 2: …"]},
+        ...
+      ]},
       ...
     ],
     "tools_stack": ["...", "..."],
@@ -114,7 +124,7 @@ Output shape (JSON):
 }`;
 }
 
-export async function handlePlanner(run: RoutineRun): Promise<string> {
+export async function handlePlanner(run: RoutineRun): Promise<HandlerResult> {
   if (run.idea_context_id == null) {
     throw new Error("planner run has no idea_context_id");
   }
@@ -140,10 +150,11 @@ export async function handlePlanner(run: RoutineRun): Promise<string> {
     );
   }
 
-  const out = await generateStructured({
+  const { value: out, cost } = await generateStructured({
     prompt: buildPrompt(idea, dislikes),
     schema: PlannerSchema,
     model: "sonnet",
+    maxRetries: 2,
   });
 
   const nowIso = new Date().toISOString();
@@ -158,5 +169,8 @@ export async function handlePlanner(run: RoutineRun): Promise<string> {
     .eq("id", ideaId);
   if (error) throw new Error(`update idea: ${error.message}`);
 
-  return `Built 12-week plan for #${ideaId}`;
+  return {
+    summary: `Built 12-week plan for #${ideaId}`,
+    cost,
+  };
 }

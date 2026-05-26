@@ -1,4 +1,9 @@
-import { supabase, type RoutineName, type RoutineRun } from "../lib/supabase";
+import {
+  supabase,
+  type CostPayload,
+  type RoutineName,
+  type RoutineRun,
+} from "../lib/supabase";
 import { markAccepted, markCompleted, markError } from "../lib/routine-runs";
 
 export type Claimed = RoutineRun;
@@ -41,8 +46,12 @@ export async function claimNextTriggered(): Promise<Claimed | null> {
   return (claimed as RoutineRun | null) ?? null;
 }
 
-export async function complete(runId: number, summary: string): Promise<void> {
-  await markCompleted(runId, summary);
+export async function complete(
+  runId: number,
+  summary: string,
+  cost: CostPayload | null = null,
+): Promise<void> {
+  await markCompleted(runId, summary, cost);
 }
 
 export async function fail(runId: number, message: string): Promise<void> {

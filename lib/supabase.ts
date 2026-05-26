@@ -88,6 +88,11 @@ export type Idea = {
   user_notes: string | null;
 };
 
+export type TaskDetail = {
+  task: string;
+  steps: string[];
+};
+
 export type BusinessPlan = {
   executive_summary?: string;
   target_customer?: string;
@@ -99,7 +104,7 @@ export type BusinessPlan = {
   };
   go_to_market_zero_paid?: string[];
   go_to_market_paid_after_10_customers?: string[];
-  launch_plan_12_weeks?: { weeks: string; title: string; tasks: string[] }[];
+  launch_plan_12_weeks?: { weeks: string; title: string; tasks: TaskDetail[] }[];
   tools_stack?: string[];
   financial_projection?: {
     months_1_3?: string;
@@ -109,6 +114,11 @@ export type BusinessPlan = {
   biggest_risks?: string[];
   kill_conditions?: string[];
 };
+
+export function normalizeTask(t: string | TaskDetail): TaskDetail {
+  if (typeof t === "string") return { task: t, steps: [] };
+  return t;
+}
 
 export type ResearchSourceDataPoint = {
   metric: string;
@@ -157,6 +167,20 @@ export type RoutineRunStatus =
 
 export type TriggeredBy = "cron" | "ui" | "callback";
 
+export type CostPayload = {
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cost_usd: number | null;
+};
+
+/** Shape every worker handler returns: human-readable summary + cost payload
+ * threaded from the SDK. Lives here (not in worker/) to avoid a circular
+ * import: worker/index.ts dispatches to handlers, handlers need this type. */
+export type HandlerResult = {
+  summary: string;
+  cost: CostPayload | null;
+};
+
 export type RoutineRun = {
   id: number;
   routine_name: RoutineName;
@@ -168,4 +192,7 @@ export type RoutineRun = {
   error_message: string | null;
   fire_response_body: string | null;
   summary: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cost_usd: number | null;
 };
