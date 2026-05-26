@@ -292,35 +292,38 @@ export default function Home() {
         </div>
       )}
 
-      <nav
-        className="flex gap-0.5 sm:gap-1 mb-6 sm:mb-8 border-b border-border overflow-x-auto min-w-0 -mx-4 px-4 sm:mx-0 sm:px-0"
-        style={{ scrollbarWidth: "none" }}
-      >
-        {TABS.map((t) => {
-          const count = pendingCounts[t.id] ?? 0;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`shrink-0 whitespace-nowrap px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors ${
-                tab === t.id
-                  ? "border-text text-text"
-                  : "border-transparent text-muted hover:text-text"
-              }`}
-            >
-              {t.label}
-              {count > 0 && (
-                <span
-                  className="ml-1.5 font-mono text-[0.6875rem] px-1.5 py-0.5 rounded-sm bg-border text-text"
-                  aria-label={`${count} pending`}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+      <div className="relative mb-6 sm:mb-8 -mx-4 sm:mx-0">
+        <nav
+          className="flex gap-0.5 sm:gap-1 border-b border-border overflow-x-auto min-w-0 px-4 sm:px-0"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {TABS.map((t) => {
+            const count = pendingCounts[t.id] ?? 0;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors ${
+                  tab === t.id
+                    ? "border-text text-text"
+                    : "border-transparent text-muted hover:text-text"
+                }`}
+              >
+                {t.label}
+                {count > 0 && (
+                  <span
+                    className="ml-1.5 font-mono text-[0.6875rem] px-1.5 py-0.5 rounded-sm bg-border text-text"
+                    aria-label={`${count} pending`}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="absolute right-0 top-0 bottom-px w-8 bg-gradient-to-l from-bg to-transparent pointer-events-none sm:hidden" />
+      </div>
 
       <main>
         {tab === "inbox" && <TabInbox />}
