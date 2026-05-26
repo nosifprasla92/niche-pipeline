@@ -154,6 +154,7 @@ export async function handlePlanner(run: RoutineRun): Promise<HandlerResult> {
     prompt: buildPrompt(idea, dislikes),
     schema: PlannerSchema,
     model: "sonnet",
+    maxRetries: 2,
   });
 
   const nowIso = new Date().toISOString();

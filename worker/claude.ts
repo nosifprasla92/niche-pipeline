@@ -35,7 +35,7 @@ export type GenerateOptions<S extends ZodType> = {
   timeoutMs?: number;
 };
 
-export const DEFAULT_TIMEOUT_MS = 15 * 60_000;
+export const DEFAULT_TIMEOUT_MS = 8 * 60_000;
 
 /**
  * Result returned by `generateStructured`. `value` is the Zod-parsed object
