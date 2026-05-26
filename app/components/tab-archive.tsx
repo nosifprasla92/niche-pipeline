@@ -38,7 +38,7 @@ export function TabArchive() {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-3 py-1 text-sm rounded-sm border transition-colors ${
+              className={`px-3 py-2 sm:py-1 text-sm rounded-sm border transition-colors ${
                 filter === f.id
                   ? "bg-text text-bg border-transparent"
                   : "border-border text-text hover:bg-border/50"
@@ -52,7 +52,7 @@ export function TabArchive() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search titles…"
-          className="sm:ml-auto w-full sm:w-auto text-sm px-3 py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
+          className="sm:ml-auto w-full sm:w-auto text-sm px-3 py-2.5 sm:py-1.5 rounded-md border border-border bg-transparent focus:outline-none focus:border-accent"
         />
       </div>
 
