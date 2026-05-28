@@ -140,6 +140,18 @@ export type ResearchSource = {
   updated_at: string;
 };
 
+export type IdeaQuestion = {
+  id: number;
+  idea_id: number;
+  question: string;
+  answer: string;
+  model: string;
+  thinking_tokens: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  created_at: string;
+};
+
 export type FeedbackPattern = {
   id: number;
   created_at: string;

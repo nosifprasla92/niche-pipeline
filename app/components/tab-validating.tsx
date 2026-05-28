@@ -6,6 +6,7 @@ import { Idea } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 import { ConflictToast, type Conflict } from "./conflict-toast";
+import { IdeaQA } from "./idea-qa";
 
 export function TabValidating() {
   const { data, mutate } = useSWR<{ ideas: Idea[] }>(
@@ -176,6 +177,8 @@ function ValidateCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
       <Section title="Customer interview script" titleColor="text-info">{idea.interview_questions}</Section>
       <Section title="$50 ad test plan" titleColor="text-warning">{idea.ad_test_plan}</Section>
       <Section title="Signals to collect (7 days)" titleColor="text-success">{idea.validation_signals}</Section>
+
+      <IdeaQA ideaId={idea.id} />
 
       {!killing ? (
         <div className="flex gap-2 mt-5">

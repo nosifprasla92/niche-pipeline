@@ -33,6 +33,15 @@ type RecentIdea = {
   income_bracket: IncomeBracket | null;
 };
 
+type RecentQA = {
+  idea_title: string;
+  question: string;
+  answer: string;
+};
+
+const QA_RECENT_LIMIT = 20;
+const QA_RECENT_ANSWER_CHARS = 500;
+
 function altBracket(last: IncomeBracket | null): IncomeBracket {
   // v2.1 fix: alternate from the last bracket, default lifestyle on null.
   if (last === "business") return "lifestyle";
@@ -46,6 +55,7 @@ function buildPrompt(
   patterns: FeedbackPattern[],
   profileSummary: string | null,
   nextBracket: IncomeBracket,
+  recentQA: RecentQA[],
 ): string {
   const recentBlock = recent.length
     ? recent.map((r) => `- "${r.title}" (${r.status})`).join("\n")
@@ -70,6 +80,18 @@ function buildPrompt(
     ? dislikes.map((d) => `- ${d.pattern} (×${d.confidence})`).join("\n")
     : "(none)";
 
+  const qaBlock = recentQA.length
+    ? recentQA
+        .map((q) => {
+          const ans =
+            q.answer.length > QA_RECENT_ANSWER_CHARS
+              ? `${q.answer.slice(0, QA_RECENT_ANSWER_CHARS)}…`
+              : q.answer;
+          return `- on "${q.idea_title}":\n    Q: ${q.question}\n    A: ${ans}`;
+        })
+        .join("\n")
+    : "(none yet)";
+
   return `You are the idea generator for a single-user small-business idea pipeline. Generate 5 fresh ideas in one batch.
 
 FOUNDER PROFILE:
@@ -87,6 +109,9 @@ ${likeBlock}
 FOUNDER DISLIKES (avoid these — auto-kill triggers):
 ${dislikeBlock}
 
+RECENT FOUNDER REASONING (last ${QA_RECENT_LIMIT} Q&A pairs across all ideas — soft priors for what the founder is currently interested in, worried about, or interrogating. NOT constraints — use as inspiration where it fits, ignore where it doesn't):
+${qaBlock}
+
 REQUIREMENTS:
 1. Generate exactly 5 ideas.
 2. Each idea picks a DIFFERENT combination of (domain × gtm_style × positioning). No two ideas can share all three. Include the tuple in tags, e.g. ["b2b", "content-marketing", "consultant-tool", ...].
@@ -95,6 +120,7 @@ REQUIREMENTS:
    - lifestyle bracket: $500–$2,000/mo solo side-project income
    - business bracket: $3,000–$8,000/mo as a real solo business
 5. why_it_works and devils_advocate are EACH 3–6 short bullets. AT MOST ONE bullet per array is marked important=true (the single most-decisive claim). No "however"/"additionally" transitions — each bullet stands alone.
+6. Where the RECENT FOUNDER REASONING above hints at angles the founder cares about (e.g. they keep interrogating distribution, or asking about a specific customer segment), let that inform — but never force-fit — at least one of the five ideas.
 
 HARD EXCLUSIONS (do not generate any of these):
 - Physical inventory or fulfillment
@@ -127,39 +153,72 @@ export async function handleGenerator(_run: RoutineRun): Promise<HandlerResult> 
     Date.now() - 60 * 24 * 60 * 60 * 1000,
   ).toISOString();
 
-  const [recentRes, killedRes, patternsRes, profileRes] = await Promise.all([
-    supabase
-      .from("ideas")
-      .select("title, status, kill_reason, income_bracket")
-      .gt("created_at", sixtyDaysAgo)
-      .order("created_at", { ascending: false })
-      .limit(80),
-    supabase
-      .from("ideas")
-      .select("title, status, kill_reason, income_bracket")
-      .eq("status", "killed")
-      .order("killed_at", { ascending: false })
-      .limit(30),
-    supabase.from("feedback_patterns").select("*"),
-    supabase.from("pipeline_profile").select("summary").eq("id", 1).maybeSingle(),
-  ]);
+  const [recentRes, killedRes, patternsRes, profileRes, qaRes] =
+    await Promise.all([
+      supabase
+        .from("ideas")
+        .select("title, status, kill_reason, income_bracket")
+        .gt("created_at", sixtyDaysAgo)
+        .order("created_at", { ascending: false })
+        .limit(80),
+      supabase
+        .from("ideas")
+        .select("title, status, kill_reason, income_bracket")
+        .eq("status", "killed")
+        .order("killed_at", { ascending: false })
+        .limit(30),
+      supabase.from("feedback_patterns").select("*"),
+      supabase
+        .from("pipeline_profile")
+        .select("summary")
+        .eq("id", 1)
+        .maybeSingle(),
+      supabase
+        .from("idea_questions")
+        .select("question, answer, ideas(title)")
+        .gt("created_at", sixtyDaysAgo)
+        .order("created_at", { ascending: false })
+        .limit(QA_RECENT_LIMIT),
+    ]);
 
   if (recentRes.error) throw new Error(`fetch recent: ${recentRes.error.message}`);
   if (killedRes.error) throw new Error(`fetch killed: ${killedRes.error.message}`);
   if (patternsRes.error)
     throw new Error(`fetch patterns: ${patternsRes.error.message}`);
+  if (qaRes.error) throw new Error(`fetch qa: ${qaRes.error.message}`);
 
   const recent = (recentRes.data ?? []) as RecentIdea[];
   const killed = (killedRes.data ?? []) as RecentIdea[];
   const patterns = (patternsRes.data ?? []) as FeedbackPattern[];
   const profileSummary =
     (profileRes.data as { summary: string | null } | null)?.summary ?? null;
+  const recentQA: RecentQA[] = (qaRes.data ?? [])
+    .map((row) => {
+      const r = row as {
+        question: string;
+        answer: string;
+        ideas: { title: string } | { title: string }[] | null;
+      };
+      const ideaTitle = Array.isArray(r.ideas)
+        ? r.ideas[0]?.title
+        : r.ideas?.title;
+      if (!ideaTitle) return null;
+      return { idea_title: ideaTitle, question: r.question, answer: r.answer };
+    })
+    .filter((x): x is RecentQA => x !== null);
 
   const lastBracket = recent[0]?.income_bracket ?? null;
   const nextBracket = altBracket(lastBracket);
 
   const { value: out, cost } = await generateStructured({
-    prompt: buildPrompt(recent, killed, patterns, profileSummary, nextBracket),
+    prompt: buildPrompt(
+      recent,
+      killed,
+      patterns,
+      profileSummary,
+      nextBracket,
+      recentQA,
+    ),
     schema: GeneratorSchema,
     model: "opus",
   });

@@ -7,6 +7,8 @@ import {
 import { generateStructured } from "../claude";
 
 const KILL_WINDOW_DAYS = 14;
+const QA_PER_IDEA = 3;
+const QA_ANSWER_CHARS = 800;
 
 const PostmortemSchema = z.object({
   replace_pattern_ids: z.array(z.number().int().positive()),
@@ -21,11 +23,18 @@ const PostmortemSchema = z.object({
 
 type Killed = { id: number; title: string; kill_reason: string | null };
 type DislikePattern = { id: number; pattern: string; confidence: number };
+type QARow = {
+  idea_id: number;
+  question: string;
+  answer: string;
+  created_at: string;
+};
 
 function buildPrompt(
   killed: Killed[],
   dislikes: DislikePattern[],
   likes: DislikePattern[],
+  qaByIdea: Map<number, QARow[]>,
 ): string {
   const killedBlock = killed.length
     ? killed
@@ -46,10 +55,33 @@ function buildPrompt(
     ? likes.map((l) => `- (×${l.confidence}) ${l.pattern}`).join("\n")
     : "(none)";
 
+  const reasoningBlocks: string[] = [];
+  for (const k of killed) {
+    const pairs = qaByIdea.get(k.id);
+    if (!pairs || pairs.length === 0) continue;
+    const lines = pairs
+      .slice(0, QA_PER_IDEA)
+      .map((p) => {
+        const ans =
+          p.answer.length > QA_ANSWER_CHARS
+            ? `${p.answer.slice(0, QA_ANSWER_CHARS)}…`
+            : p.answer;
+        return `  Q: ${p.question}\n  A: ${ans}`;
+      })
+      .join("\n");
+    reasoningBlocks.push(`## #${k.id} "${k.title}"\n${lines}`);
+  }
+  const reasoningBlock = reasoningBlocks.length
+    ? reasoningBlocks.join("\n\n")
+    : "(no Q&A on killed ideas in window)";
+
   return `You are the post-mortem analyst for a single-user small-business idea pipeline. The user reviews AI-generated ideas daily and kills the ones that don't fit. Your job: turn the noise into a clean signal.
 
 KILLED IDEAS (last ${KILL_WINDOW_DAYS} days):
 ${killedBlock}
+
+FOUNDER REASONING ON KILLED IDEAS (Q&A pairs — what the founder asked and the answer they got before deciding to kill. These often surface the real objection more clearly than the kill_reason string):
+${reasoningBlock}
 
 EXISTING DISLIKE PATTERNS:
 ${dislikeBlock}
@@ -59,7 +91,7 @@ ${likeBlock}
 
 TASKS:
 1. Consolidate the existing dislike patterns. If two say roughly the same thing, merge them. Put the IDs being absorbed in replace_pattern_ids; emit the merged version in new_patterns. Aim for 5–10 clean clusters total.
-2. Add new dislike clusters from killed-idea kill_reasons that aren't already covered. confidence ≈ count of source items backing each cluster.
+2. Add new dislike clusters from killed-idea kill_reasons AND from the FOUNDER REASONING above (the Q&A often reveals the real objection — a thin "not for me" kill_reason backed by Q&A about, say, "this needs paid ads day 1" should produce a pattern about paid-acquisition dependence). confidence ≈ count of source items backing each cluster.
 3. profile_summary: 2–3 sentences in second person ("You prefer…", "You avoid…"). Reads as a coherent founder profile, not a bullet list.
 
 Phrasing rules for new_patterns:
@@ -108,8 +140,24 @@ export async function handlePostmortem(_run: RoutineRun): Promise<HandlerResult>
     };
   }
 
+  const qaByIdea = new Map<number, QARow[]>();
+  if (killed.length > 0) {
+    const { data: qaRows, error: qaErr } = await supabase
+      .from("idea_questions")
+      .select("idea_id, question, answer, created_at")
+      .in("idea_id", killed.map((k) => k.id))
+      .order("created_at", { ascending: false })
+      .limit(QA_PER_IDEA * killed.length);
+    if (qaErr) throw new Error(`fetch qa: ${qaErr.message}`);
+    for (const row of (qaRows ?? []) as QARow[]) {
+      const bucket = qaByIdea.get(row.idea_id) ?? [];
+      bucket.push(row);
+      qaByIdea.set(row.idea_id, bucket);
+    }
+  }
+
   const { value: object, cost } = await generateStructured({
-    prompt: buildPrompt(killed, dislikes, likes),
+    prompt: buildPrompt(killed, dislikes, likes, qaByIdea),
     schema: PostmortemSchema,
     model: "sonnet",
   });

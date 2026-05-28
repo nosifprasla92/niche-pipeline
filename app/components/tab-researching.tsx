@@ -7,6 +7,7 @@ import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 import { ConflictToast, type Conflict } from "./conflict-toast";
 import { useIsMobile } from "@/lib/use-mobile";
+import { IdeaQA } from "./idea-qa";
 
 export function TabResearching() {
   const { data, mutate } = useSWR<{ ideas: Idea[] }>(
@@ -229,6 +230,8 @@ function ResearchCard({ idea, onChange }: { idea: Idea; onChange: () => void }) 
           )}
         </>
       )}
+
+      <IdeaQA ideaId={idea.id} />
 
       {!killing ? (
         <div className="flex gap-2 mt-5">

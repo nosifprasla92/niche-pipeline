@@ -8,6 +8,7 @@ import { Card } from "./card";
 import { StatusPill } from "./status-pill";
 import { Checkbox } from "./checkbox";
 import { CelebrationToast } from "./celebration-toast";
+import { IdeaQA } from "./idea-qa";
 
 type LaunchWeek = NonNullable<BusinessPlan["launch_plan_12_weeks"]>[number];
 
@@ -397,6 +398,7 @@ function InProgressCard({ idea, onChange }: { idea: Idea; onChange: () => void }
             );
           })}
         </div>
+        <IdeaQA ideaId={idea.id} />
       </Card>
       {celebration && (
         <CelebrationToast

@@ -35,6 +35,21 @@ export type GenerateOptions<S extends ZodType> = {
   timeoutMs?: number;
 };
 
+export type GenerateTextOptions = {
+  prompt: string;
+  systemPrompt?: string;
+  model?: string;
+  timeoutMs?: number;
+  /** Pass-through to the SDK's thinking config. Use to enable extended
+   *  thinking on Sonnet/Opus, e.g. `{ type: "enabled", budgetTokens: 4000 }`. */
+  thinking?: ThinkingConfig;
+};
+
+type ThinkingConfig =
+  | { type: "adaptive" }
+  | { type: "enabled"; budgetTokens: number }
+  | { type: "disabled" };
+
 export const DEFAULT_TIMEOUT_MS = 8 * 60_000;
 
 /**
@@ -100,9 +115,34 @@ export async function generateStructured<S extends ZodType>(
 
 type RunQueryResult = { text: string; cost: CostPayload };
 
-async function runQuery<S extends ZodType>(
+/**
+ * Free-text version of generateStructured: same Max-OAuth path, no schema /
+ * no parse retries. Used by the in-app reasoning Q&A surface
+ * (app/api/idea-ask) so interactive calls bill the Max plan rather than the
+ * paid AI Gateway.
+ */
+export async function generateText(
+  opts: GenerateTextOptions,
+): Promise<GenerateResult<string>> {
+  const { text, cost } = await runQuery(opts.prompt, {
+    model: opts.model,
+    systemPrompt: opts.systemPrompt,
+    timeoutMs: opts.timeoutMs,
+    thinking: opts.thinking,
+  });
+  return { value: text, cost };
+}
+
+type RunQueryOptions = {
+  model?: string;
+  systemPrompt?: string;
+  timeoutMs?: number;
+  thinking?: ThinkingConfig;
+};
+
+async function runQuery(
   prompt: string,
-  opts: GenerateOptions<S>,
+  opts: RunQueryOptions,
 ): Promise<RunQueryResult> {
   let finalText = "";
   let cost: CostPayload = EMPTY_COST;
@@ -131,6 +171,7 @@ async function runQuery<S extends ZodType>(
         settingSources: [],
         permissionMode: "bypassPermissions",
         abortController,
+        thinking: opts.thinking,
       },
     })) {
       if (msg.type === "result") {

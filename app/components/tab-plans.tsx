@@ -5,6 +5,7 @@ import { fetcher, formatDate } from "@/lib/fetcher";
 import { Idea, BusinessPlan, normalizeTask } from "@/lib/supabase";
 import { Card } from "./card";
 import { StatusPill } from "./status-pill";
+import { IdeaQA } from "./idea-qa";
 
 export function TabPlans() {
   const { data, mutate } = useSWR<{ ideas: Idea[] }>(
@@ -179,6 +180,8 @@ function PlanCard({ idea, onChange }: { idea: Idea; onChange: () => void }) {
           </ul>
         </div>
       )}
+
+      <IdeaQA ideaId={idea.id} />
 
       <div className="flex gap-2 mt-5">
         <button
