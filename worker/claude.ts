@@ -43,6 +43,15 @@ export type GenerateTextOptions = {
   /** Pass-through to the SDK's thinking config. Use to enable extended
    *  thinking on Sonnet/Opus, e.g. `{ type: "enabled", budgetTokens: 4000 }`. */
   thinking?: ThinkingConfig;
+  /** Tools the SDK is allowed to call. Default is `[]` (pure text, no agent
+   *  loop) to match the routine handlers. Pass e.g. `["WebSearch"]` for the
+   *  Q&A path so Claude can cite live sources. When tools are enabled, bump
+   *  maxTurns above 1 — the SDK needs to round-trip tool_use/tool_result
+   *  before producing a final answer. */
+  allowedTools?: string[];
+  /** Max conversation turns the SDK is allowed. Default 1 (no tools).
+   *  Bump to ~5 when `allowedTools` is non-empty. */
+  maxTurns?: number;
 };
 
 type ThinkingConfig =
@@ -129,6 +138,8 @@ export async function generateText(
     systemPrompt: opts.systemPrompt,
     timeoutMs: opts.timeoutMs,
     thinking: opts.thinking,
+    allowedTools: opts.allowedTools,
+    maxTurns: opts.maxTurns,
   });
   return { value: text, cost };
 }
@@ -138,6 +149,8 @@ type RunQueryOptions = {
   systemPrompt?: string;
   timeoutMs?: number;
   thinking?: ThinkingConfig;
+  allowedTools?: string[];
+  maxTurns?: number;
 };
 
 async function runQuery(
@@ -164,9 +177,10 @@ async function runQuery(
         systemPrompt: opts.systemPrompt
           ? { type: "preset", preset: "claude_code", append: opts.systemPrompt }
           : undefined,
-        // Disable all tools — pure text generation, not an agent loop.
-        allowedTools: [],
-        maxTurns: 1,
+        // Default: no tools — pure text. Callers (e.g. the Q&A route) can
+        // opt in by passing `allowedTools` + a higher `maxTurns`.
+        allowedTools: opts.allowedTools ?? [],
+        maxTurns: opts.maxTurns ?? 1,
         // Don't load CLAUDE.md / settings.json / etc.
         settingSources: [],
         permissionMode: "bypassPermissions",

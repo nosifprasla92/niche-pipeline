@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { supabase, type Idea } from "@/lib/supabase";
+import { supabase, type Idea, type IdeaQuestion } from "@/lib/supabase";
 import { logEvent } from "@/lib/log";
 import { checkSpendAllowed } from "@/lib/spend-guard";
 import { generateText } from "@/worker/claude";
@@ -8,21 +8,32 @@ import { generateText } from "@/worker/claude";
 export const maxDuration = 300;
 
 // Uses Claude Max via the agent SDK (worker/claude.ts) — same OAuth path the
-// daily routines use. Bills against the Max plan, not the paid AI Gateway.
+// daily routines use. Bills the Max plan, not the paid AI Gateway.
 const MODEL = "sonnet";
 const THINKING_BUDGET_TOKENS = 4000;
 const PER_IDEA_DAILY_CAP = 5;
+// How many prior turns (each = one Q + one A) to include as context on a
+// follow-up. Keeps the dialogue coherent without unbounded prompt growth.
+const PRIOR_TURNS_LIMIT = 6;
+const PRIOR_ANSWER_CHARS = 1200;
 
 const Body = z.object({
   idea_id: z.number().int().positive(),
   question: z.string().min(3).max(2000),
 });
 
-const SYSTEM = `You are the founder's reasoning partner on a single-user small-business idea pipeline. The founder has a specific idea in front of them with research, validation, and plan context attached. They are asking a focused question to interrogate that idea.
+const SYSTEM = `You are the founder's reasoning partner on a single-user small-business idea pipeline. You are in an ongoing back-and-forth with the founder about ONE specific idea. Earlier turns of the dialogue are included for context.
 
-Your job is to REASON over the context — weigh evidence, surface load-bearing assumptions, flag gaps, and propose concrete next steps or falsifications. Do not just restate what's already in the context. If the context is thin on something the question needs, say so explicitly rather than fabricating. Be direct and specific; this founder values signal over hedging.`;
+RESPONSE SHAPE — these are hard rules:
+- Maximum 1000 characters total (roughly 150 words, 1–2 paragraphs).
+- Lead with the answer in the first sentence. No "Great question", no "Let me know if…", no preamble or sign-off.
+- Back up your reasoning. Either (a) cite the idea's own context fields explicitly ("per your competitor complaints, …"), or (b) cite a source you fetched with WebSearch — paste the URL inline in brackets, e.g. [https://example.com/path]. Do not invent URLs.
+- If a question genuinely needs more space (e.g. multi-step plan), break it into the smallest set of named bullets — but the ceiling still holds.
+- If the context is thin on what the question needs, say so in one sentence and propose what you'd want to know.
 
-function buildContext(idea: Idea, question: string): string {
+You have WebSearch available. Use it when the question hinges on a fact you don't have in the idea context — market size, churn benchmarks, competitor pricing, regulatory specifics — but skip it for questions that are pure reasoning over the context already in front of you. Speed matters; this is interactive.`;
+
+function formatIdeaContext(idea: Idea): string {
   const lines: string[] = [];
   lines.push(`IDEA #${idea.id} — ${idea.title}`);
   lines.push(`Status: ${idea.status}`);
@@ -80,8 +91,37 @@ function buildContext(idea: Idea, question: string): string {
   }
   if (idea.user_notes) lines.push(`\nFOUNDER NOTES:\n${idea.user_notes}`);
 
-  lines.push(`\nQUESTION: ${question}`);
   return lines.join("\n");
+}
+
+function formatPriorTurns(prior: IdeaQuestion[]): string {
+  if (prior.length === 0) return "(no prior turns — this is the opening question)";
+  const turns = prior.slice(-PRIOR_TURNS_LIMIT);
+  const lines: string[] = [];
+  for (const t of turns) {
+    const a =
+      t.answer.length > PRIOR_ANSWER_CHARS
+        ? `${t.answer.slice(0, PRIOR_ANSWER_CHARS)}…`
+        : t.answer;
+    lines.push(`Founder: ${t.question}`);
+    lines.push(`You: ${a}`);
+  }
+  return lines.join("\n");
+}
+
+function buildPrompt(
+  idea: Idea,
+  prior: IdeaQuestion[],
+  question: string,
+): string {
+  return [
+    formatIdeaContext(idea),
+    "",
+    "PRIOR CONVERSATION (founder ↔ you, in order):",
+    formatPriorTurns(prior),
+    "",
+    `NEW QUESTION FROM FOUNDER: ${question}`,
+  ].join("\n");
 }
 
 export async function POST(req: NextRequest) {
@@ -134,22 +174,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { data: ideaRow, error: ideaError } = await supabase
-    .from("ideas")
-    .select("*")
-    .eq("id", idea_id)
-    .maybeSingle();
+  const [{ data: ideaRow, error: ideaError }, { data: priorRows, error: priorError }] =
+    await Promise.all([
+      supabase.from("ideas").select("*").eq("id", idea_id).maybeSingle(),
+      supabase
+        .from("idea_questions")
+        .select("id, idea_id, question, answer, model, thinking_tokens, input_tokens, output_tokens, created_at")
+        .eq("idea_id", idea_id)
+        .order("created_at", { ascending: true }),
+    ]);
   if (ideaError) {
     return NextResponse.json({ error: ideaError.message }, { status: 500 });
   }
   if (!ideaRow) {
     return NextResponse.json({ error: "idea not found" }, { status: 404 });
   }
+  if (priorError) {
+    return NextResponse.json({ error: priorError.message }, { status: 500 });
+  }
   const idea = ideaRow as Idea;
+  const prior = (priorRows ?? []) as IdeaQuestion[];
 
-  const prompt = buildContext(idea, question);
+  const prompt = buildPrompt(idea, prior, question);
   logEvent("info", "idea_ask.start", {
     idea_id,
+    prior_turns: prior.length,
     question_chars: question.length,
     context_chars: prompt.length,
   });
@@ -162,6 +211,8 @@ export async function POST(req: NextRequest) {
       systemPrompt: SYSTEM,
       model: MODEL,
       thinking: { type: "enabled", budgetTokens: THINKING_BUDGET_TOKENS },
+      allowedTools: ["WebSearch"],
+      maxTurns: 5,
     });
     answer = out.value.trim();
     cost = out.cost;
