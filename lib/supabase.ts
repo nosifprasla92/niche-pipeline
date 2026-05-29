@@ -74,6 +74,11 @@ export type Idea = {
   interview_questions: string | null;
   ad_test_plan: string | null;
   validation_signals: string | null;
+  decision_rubric: string | null;
+  distribution_beachhead: string | null;
+  open_questions: string | null;
+  pricing_anchor: string | null;
+  validation_recap: string | null;
   validated_at: string | null;
 
   // Plan

@@ -4,6 +4,8 @@ import {
   type FeedbackPattern,
   type HandlerResult,
   type Idea,
+  type IdeaQuestion,
+  type ResearchSource,
   type RoutineRun,
 } from "../../lib/supabase";
 import { generateStructured } from "../claude";
@@ -12,6 +14,48 @@ const BRACKET_MRR_CEILING = {
   lifestyle: 4000,
   business: 16000,
 } as const;
+
+const QA_LIMIT = 20;
+const QA_ANSWER_CHARS = 1500;
+const SOURCES_LIMIT = 6;
+const SOURCE_DATA_POINTS = 8;
+
+function formatInsights(points: Idea["why_it_works"]): string {
+  if (!points?.length) return "(none)";
+  return points
+    .map((p) => `- ${p.text}${p.important ? " [IMPORTANT]" : ""}`)
+    .join("\n");
+}
+
+function formatQA(rows: IdeaQuestion[]): string {
+  if (rows.length === 0) return "(no Q&A on this idea)";
+  const lines: string[] = [];
+  for (const r of rows) {
+    const ans =
+      r.answer.length > QA_ANSWER_CHARS
+        ? `${r.answer.slice(0, QA_ANSWER_CHARS)}…`
+        : r.answer;
+    lines.push(`Q: ${r.question}`);
+    lines.push(`A: ${ans}`);
+    lines.push("");
+  }
+  return lines.join("\n").trimEnd();
+}
+
+function formatSources(sources: ResearchSource[]): string {
+  if (sources.length === 0) return "(no tag-matching sources ingested)";
+  const lines: string[] = [];
+  for (const s of sources) {
+    lines.push(`- [${s.title}](${s.url})`);
+    lines.push(`  ${s.summary}`);
+    const points = s.key_data_points?.slice(0, SOURCE_DATA_POINTS) ?? [];
+    for (const p of points) {
+      const ctx = p.context ? ` (${p.context})` : "";
+      lines.push(`  • ${p.metric}: ${p.value}${ctx}`);
+    }
+  }
+  return lines.join("\n");
+}
 
 const TaskDetailSchema = z.object({
   task: z.string().min(3).max(600),
@@ -54,7 +98,12 @@ const PlannerSchema = z.object({
   first_actions: z.array(z.string().min(10).max(600)).length(3),
 });
 
-function buildPrompt(idea: Idea, dislikes: FeedbackPattern[]): string {
+function buildPrompt(
+  idea: Idea,
+  dislikes: FeedbackPattern[],
+  qa: IdeaQuestion[],
+  sources: ResearchSource[],
+): string {
   const bracket = idea.income_bracket ?? "business";
   const ceiling = BRACKET_MRR_CEILING[bracket];
 
@@ -64,24 +113,64 @@ function buildPrompt(idea: Idea, dislikes: FeedbackPattern[]): string {
 
   return `You are the plan-builder for a single-user small-business idea pipeline. The user has researched AND validated this idea (real ad test + interviews) and is ready to commit a quarter to it. Build a concrete 12-week plan.
 
+Use EVERYTHING below — the validation kit's landing copy / interview script / ad plan / decision rubric / distribution beachhead / open questions / pricing anchor, the founder's prior Q&A on this idea (with inline source URLs from WebSearch), the research priors, and any tag-matching ingested sources — to build a plan that respects what's already been learned. Re-use the founder's own framing and customer language wherever possible; the distribution_beachhead from validation should anchor go_to_market_zero_paid; pricing_anchor should anchor offer.pricing_model; the decision_rubric should inform kill_conditions.
+
 IDEA #${idea.id}: ${idea.title}
 BRACKET: ${bracket} (month-12 MRR ceiling for projection: $${ceiling})
+TAGS: ${idea.tags?.join(", ") || "(none)"}
 
 DESCRIPTION:
 ${idea.description}
 
+WHY IT WORKS (from generator):
+${formatInsights(idea.why_it_works)}
+
+DEVIL'S ADVOCATE (from generator):
+${formatInsights(idea.devils_advocate)}
+
 RESEARCH:
 - Competitors above price floor: ${idea.competitors_above_50 ?? "?"}
 - Competition analysis: ${idea.competition_analysis ?? "(none)"}
-- Effort: ${idea.effort_weeks ?? "?"} weeks
+- Competitor complaints: ${idea.competitor_complaints ?? "(none)"}
+- Effort: ${idea.effort_weeks ?? "?"} weeks. ${idea.effort_breakdown ?? ""}
 - Zero-paid path (from research): ${idea.zero_paid_path ?? "(none)"}
 
-VALIDATION OUTPUT:
-- Landing copy: ${idea.landing_copy ? "[present]" : "[MISSING — abort]"}
-- Interview questions: ${idea.interview_questions ? "[present]" : "[missing]"}
-- Ad test plan: ${idea.ad_test_plan ? "[present]" : "[missing]"}
+VALIDATION KIT (full content — read and integrate, don't just acknowledge):
 
-FOUNDER DISLIKES (avoid in plan choices):
+Landing copy:
+${idea.landing_copy ?? "[MISSING — abort]"}
+
+Interview script:
+${idea.interview_questions ?? "(missing)"}
+
+Ad test plan:
+${idea.ad_test_plan ?? "(missing)"}
+
+Signals to collect:
+${idea.validation_signals ?? "(missing)"}
+
+Day-7 decision rubric:
+${idea.decision_rubric ?? "(missing)"}
+
+Distribution beachhead (where to find prospects):
+${idea.distribution_beachhead ?? "(missing)"}
+
+Pricing anchor:
+${idea.pricing_anchor ?? "(missing)"}
+
+Open questions the test must resolve:
+${idea.open_questions ?? "(missing)"}
+
+Validation recap (synthesis):
+${idea.validation_recap ?? "(missing)"}
+
+FOUNDER Q&A ON THIS IDEA (most recent last; answers may contain inline [URL] citations from WebSearch — treat those as sources):
+${formatQA(qa)}
+
+TAG-MATCHING RESEARCH SOURCES (global priors — cite if you use a number):
+${formatSources(sources)}
+
+${idea.user_notes ? `FOUNDER NOTES:\n${idea.user_notes}\n\n` : ""}FOUNDER DISLIKES (avoid in plan choices):
 ${dislikeBlock}
 
 GUARDRAILS:
@@ -150,8 +239,33 @@ export async function handlePlanner(run: RoutineRun): Promise<HandlerResult> {
     );
   }
 
+  const [qaRes, sourcesRes] = await Promise.all([
+    supabase
+      .from("idea_questions")
+      .select(
+        "id, idea_id, question, answer, model, thinking_tokens, input_tokens, output_tokens, created_at",
+      )
+      .eq("idea_id", ideaId)
+      .order("created_at", { ascending: true })
+      .limit(QA_LIMIT),
+    idea.tags && idea.tags.length > 0
+      ? supabase
+          .from("research_sources")
+          .select(
+            "id, url, title, source_type, summary, key_data_points, tags, ingested_at, created_at, updated_at",
+          )
+          .overlaps("tags", idea.tags)
+          .limit(SOURCES_LIMIT)
+      : Promise.resolve({ data: [] as ResearchSource[], error: null }),
+  ]);
+  if (qaRes.error) throw new Error(`fetch qa: ${qaRes.error.message}`);
+  if (sourcesRes.error)
+    throw new Error(`fetch sources: ${sourcesRes.error.message}`);
+  const qa = (qaRes.data ?? []) as IdeaQuestion[];
+  const sources = (sourcesRes.data ?? []) as ResearchSource[];
+
   const { value: out, cost } = await generateStructured({
-    prompt: buildPrompt(idea, dislikes),
+    prompt: buildPrompt(idea, dislikes, qa, sources),
     schema: PlannerSchema,
     model: "sonnet",
     maxRetries: 2,
