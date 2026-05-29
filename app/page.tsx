@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import useSWR from "swr";
 import { fetcher, formatDate } from "@/lib/fetcher";
 import { Idea, RoutineRun } from "@/lib/supabase";
@@ -79,6 +79,11 @@ const TABS = [
   { id: "archive", label: "Archive" },
   { id: "insights", label: "Insights" },
 ] as const;
+
+// First META_TAB marks where the pipeline ends and meta tabs begin — used to
+// drop a divider into the nav strip so Archive/Insights read as separate from
+// the 5-step funnel.
+const META_TAB_START: TabId = "archive";
 
 type TabId = typeof TABS[number]["id"];
 
@@ -299,26 +304,34 @@ export default function Home() {
         >
           {TABS.map((t) => {
             const count = pendingCounts[t.id] ?? 0;
+            const showDivider = t.id === META_TAB_START;
             return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-3.5 sm:py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors ${
-                  tab === t.id
-                    ? "border-text text-text"
-                    : "border-transparent text-muted hover:text-text"
-                }`}
-              >
-                {t.label}
-                {count > 0 && (
+              <Fragment key={t.id}>
+                {showDivider && (
                   <span
-                    className="ml-1.5 font-mono text-[0.6875rem] px-1.5 py-0.5 rounded-sm bg-border text-text"
-                    aria-label={`${count} pending`}
-                  >
-                    {count}
-                  </span>
+                    aria-hidden
+                    className="shrink-0 self-center mx-1 sm:mx-2 h-4 w-px bg-border"
+                  />
                 )}
-              </button>
+                <button
+                  onClick={() => setTab(t.id)}
+                  className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-3.5 sm:py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    tab === t.id
+                      ? "border-text text-text"
+                      : "border-transparent text-muted hover:text-text"
+                  }`}
+                >
+                  {t.label}
+                  {count > 0 && (
+                    <span
+                      className="ml-1.5 font-mono text-[0.6875rem] px-1.5 py-0.5 rounded-sm bg-border text-text"
+                      aria-label={`${count} pending`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              </Fragment>
             );
           })}
         </nav>
