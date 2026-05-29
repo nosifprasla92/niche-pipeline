@@ -4,8 +4,27 @@ import { useState } from "react";
 import { fetcher } from "@/lib/fetcher";
 import { FeedbackPattern, Idea } from "@/lib/supabase";
 
+type RecapPattern = {
+  id?: number;
+  pattern_type: "like" | "dislike";
+  pattern: string;
+  confidence?: number;
+};
+
+type LastPostmortem = {
+  ran_at: string;
+  killed_count: number;
+  pool_count: number;
+  added: RecapPattern[];
+  retired: Array<{ pattern_type: "like" | "dislike"; pattern: string }>;
+  saturated_tuples: Array<{ tuple: string; count: number }>;
+  saturation_notes: string;
+} | null;
+
 type Profile = {
   summary: string;
+  saturation_notes: string;
+  last_postmortem: LastPostmortem;
   generated_at: string | null;
   pattern_count: number;
   idea_count: number;
@@ -73,9 +92,14 @@ export function TabInsights() {
   }
 
   const funnelMoved = pursued + validated + launched > 0;
+  const recap = profile?.last_postmortem ?? null;
+  const recapHasChanges =
+    recap != null && (recap.added.length > 0 || recap.retired.length > 0);
 
   return (
     <div className="space-y-8 max-w-[720px]">
+      {recapHasChanges && recap ? <RecapCard recap={recap} /> : null}
+
       {funnelMoved ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Stat label="Suggested (30d)" value={suggested} tone="muted" />
@@ -99,6 +123,17 @@ export function TabInsights() {
           </div>
           <p className="font-display text-lg leading-relaxed text-text whitespace-pre-wrap">
             {profile.summary}
+          </p>
+        </div>
+      ) : null}
+
+      {profile?.saturation_notes ? (
+        <div className="space-y-2">
+          <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted">
+            Cool off
+          </div>
+          <p className="text-sm leading-relaxed text-text whitespace-pre-wrap">
+            {profile.saturation_notes}
           </p>
         </div>
       ) : null}
@@ -166,6 +201,66 @@ export function TabInsights() {
         </div>
       )}
 
+    </div>
+  );
+}
+
+function RecapCard({ recap }: { recap: NonNullable<LastPostmortem> }) {
+  const likes = recap.added.filter((p) => p.pattern_type === "like");
+  const dislikes = recap.added.filter((p) => p.pattern_type === "dislike");
+  return (
+    <div className="border border-border rounded-md bg-surface p-4 sm:p-5 space-y-3">
+      <div className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted flex items-baseline justify-between">
+        <span>Last post-mortem</span>
+        <span>{relativeTime(recap.ran_at)}</span>
+      </div>
+      <div className="font-mono text-xs text-muted flex flex-wrap gap-x-3 gap-y-1">
+        {dislikes.length > 0 && (
+          <span>
+            <span className="text-error">+{dislikes.length}</span> avoid
+            {dislikes.length === 1 ? "" : "s"}
+          </span>
+        )}
+        {likes.length > 0 && (
+          <span>
+            <span className="text-success">+{likes.length}</span> like
+            {likes.length === 1 ? "" : "s"}
+          </span>
+        )}
+        {recap.retired.length > 0 && (
+          <span>−{recap.retired.length} retired</span>
+        )}
+        <span>{recap.killed_count} kill(s) analyzed</span>
+      </div>
+      {recap.added.length > 0 && (
+        <ul className="space-y-1.5 text-sm">
+          {recap.added.map((p, i) => (
+            <li key={p.id ?? i} className="flex items-baseline gap-2">
+              <span
+                className={`font-mono text-[0.6875rem] uppercase tracking-wider shrink-0 ${p.pattern_type === "like" ? "text-success" : "text-error"}`}
+              >
+                {p.pattern_type === "like" ? "like" : "avoid"}
+              </span>
+              <span className="text-text">{p.pattern}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {recap.retired.length > 0 && (
+        <details className="text-sm">
+          <summary className="font-mono text-xs text-muted cursor-pointer hover:text-text">
+            Retired {recap.retired.length} stale pattern
+            {recap.retired.length === 1 ? "" : "s"}
+          </summary>
+          <ul className="mt-2 space-y-1 text-sm text-muted">
+            {recap.retired.map((p, i) => (
+              <li key={i} className="line-through">
+                {p.pattern}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

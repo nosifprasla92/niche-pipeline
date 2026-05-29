@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const { data, error } = await supabase
     .from("pipeline_profile")
-    .select("summary, generated_at, pattern_count, idea_count")
+    .select(
+      "summary, saturation_notes, last_postmortem, generated_at, pattern_count, idea_count",
+    )
     .eq("id", 1)
     .maybeSingle();
 
@@ -17,6 +19,8 @@ export async function GET() {
   return NextResponse.json({
     profile: data ?? {
       summary: "",
+      saturation_notes: "",
+      last_postmortem: null,
       generated_at: null,
       pattern_count: 0,
       idea_count: 0,

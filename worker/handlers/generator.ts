@@ -54,6 +54,7 @@ function buildPrompt(
   killed: RecentIdea[],
   patterns: FeedbackPattern[],
   profileSummary: string | null,
+  saturationNotes: string | null,
   nextBracket: IncomeBracket,
   recentQA: RecentQA[],
 ): string {
@@ -92,10 +93,18 @@ function buildPrompt(
         .join("\n")
     : "(none yet)";
 
+  const saturationBlock =
+    saturationNotes && saturationNotes.trim().length > 0
+      ? saturationNotes.trim()
+      : "(none flagged this cycle)";
+
   return `You are the idea generator for a single-user small-business idea pipeline. Generate 5 fresh ideas in one batch.
 
 FOUNDER PROFILE:
 ${profileSummary ?? "(no profile yet — first run)"}
+
+COOL-OFF / SATURATED ARCHETYPES (post-mortem flagged these as over-represented in the recent pool — actively avoid these shapes this batch, even if no dislike pattern matches):
+${saturationBlock}
 
 RECENT IDEAS (last 60 days — do not duplicate):
 ${recentBlock}
@@ -170,7 +179,7 @@ export async function handleGenerator(_run: RoutineRun): Promise<HandlerResult> 
       supabase.from("feedback_patterns").select("*"),
       supabase
         .from("pipeline_profile")
-        .select("summary")
+        .select("summary, saturation_notes")
         .eq("id", 1)
         .maybeSingle(),
       supabase
@@ -190,8 +199,11 @@ export async function handleGenerator(_run: RoutineRun): Promise<HandlerResult> 
   const recent = (recentRes.data ?? []) as RecentIdea[];
   const killed = (killedRes.data ?? []) as RecentIdea[];
   const patterns = (patternsRes.data ?? []) as FeedbackPattern[];
-  const profileSummary =
-    (profileRes.data as { summary: string | null } | null)?.summary ?? null;
+  const profileRow = profileRes.data as
+    | { summary: string | null; saturation_notes: string | null }
+    | null;
+  const profileSummary = profileRow?.summary ?? null;
+  const saturationNotes = profileRow?.saturation_notes ?? null;
   const recentQA: RecentQA[] = (qaRes.data ?? [])
     .map((row) => {
       const r = row as {
@@ -216,6 +228,7 @@ export async function handleGenerator(_run: RoutineRun): Promise<HandlerResult> 
       killed,
       patterns,
       profileSummary,
+      saturationNotes,
       nextBracket,
       recentQA,
     ),
